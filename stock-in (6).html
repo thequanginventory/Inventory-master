@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Stock IN — Inventory Master</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+:root {
+  --bg:#f5f2eb; --surface:#fff; --surface2:#f0ede6; --border:#d8d3c8;
+  --ink:#1a1814; --ink2:#6b6560;
+  --green:#1a7a4a; --gl:#e8f5ee; --gb:rgba(26,122,74,0.22);
+  --red:#c0392b; --amber:#b7620a; --al:#fef3e2;
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+  --r:14px; --sh:0 2px 16px rgba(26,24,20,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);font-family:var(--sans);color:var(--ink);overscroll-behavior:none}
+
+.screen{display:none;flex-direction:column;height:100vh;overflow:hidden}
+.screen.active{display:flex}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:12px;padding:52px 20px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.btn-back{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);flex-shrink:0}
+.topbar-title{font-family:var(--mono);font-size:14px;font-weight:600;flex:1}
+.topbar-sub{font-size:11px;color:var(--ink2);font-family:var(--mono);margin-top:1px}
+
+/* HOME */
+#s-home{background:var(--bg)}
+.home-header{padding:60px 24px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.home-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--ink2);text-transform:uppercase;margin-bottom:10px}
+.home-title{font-size:30px;font-weight:700;line-height:1.15;margin-bottom:6px}
+.home-title em{color:var(--green);font-style:normal}
+.home-date{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.home-body{padding:20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1}
+.main-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;align-items:center;gap:16px;cursor:pointer;box-shadow:var(--sh);transition:transform .15s,box-shadow .15s;width:100%;text-align:left}
+.main-btn:active{transform:scale(.975);box-shadow:none}
+.main-btn-icon{width:52px;height:52px;border-radius:14px;background:var(--gl);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.main-btn-info{flex:1}
+.main-btn-name{font-size:16px;font-weight:700;margin-bottom:3px}
+.main-btn-desc{font-size:12px;color:var(--ink2);line-height:1.4}
+.main-btn-arrow{color:var(--ink2);font-size:20px}
+.info-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;display:flex}
+.info-item{flex:1;text-align:center}
+.info-item+.info-item{border-left:1px solid var(--border)}
+.info-val{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--green)}
+.info-lbl{font-size:11px;color:var(--ink2);margin-top:2px}
+.sync-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:transparent;border:1px solid var(--border);border-radius:var(--r);font-size:13px;color:var(--ink2);cursor:pointer;font-family:var(--sans)}
+.sync-btn:active{background:var(--surface2)}
+
+/* SCANNER */
+#s-scan{background:#000;position:relative}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scan-ui{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:260px;height:170px;position:relative}
+.scan-frame::before,.scan-frame::after,.sf-br,.sf-bl{content:'';position:absolute;width:30px;height:30px;border-color:#fff;border-style:solid}
+.scan-frame::before{top:0;left:0;border-width:3px 0 0 3px;border-radius:5px 0 0 0}
+.scan-frame::after{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 5px 0 0}
+.sf-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 5px 0}
+.sf-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 5px}
+.scan-line{position:absolute;left:6px;right:6px;top:6px;height:2px;background:linear-gradient(90deg,transparent,#1a7a4a 40%,#4ade80 60%,transparent);animation:scanline 2s ease-in-out infinite;border-radius:1px}
+@keyframes scanline{0%,100%{top:6px;opacity:0}10%{opacity:1}90%{opacity:1}95%{top:calc(100% - 8px);opacity:0}}
+.scan-top{position:absolute;top:0;left:0;right:0;padding:52px 20px 20px;background:linear-gradient(rgba(0,0,0,.75),transparent);display:flex;align-items:center;gap:12px;pointer-events:all}
+.scan-back{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#fff}
+.scan-label{font-family:var(--mono);font-size:13px;color:#fff;font-weight:500}
+.scan-bottom{position:absolute;bottom:0;left:0;right:0;padding:40px 24px 48px;background:linear-gradient(transparent,rgba(0,0,0,.85));text-align:center;pointer-events:all}
+.scan-hint{font-size:13px;color:rgba(255,255,255,.75);margin-bottom:18px;line-height:1.5}
+.scan-manual-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:100px;padding:11px 22px;font-size:13px;font-family:var(--sans);cursor:pointer}
+.scan-toast-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(26,122,74,.95);color:#fff;padding:14px 24px;border-radius:12px;font-family:var(--mono);font-size:13px;text-align:center;display:none;pointer-events:none}
+
+/* FORM */
+#s-form{background:var(--bg)}
+.form-body{flex:1;overflow-y:auto;padding:16px 20px 40px;-webkit-overflow-scrolling:touch}
+.product-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px;box-shadow:var(--sh);animation:cardIn .25s ease}
+@keyframes cardIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.pc-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--ink2);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.pc-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.pc-code{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--green);margin-bottom:4px}
+.pc-desc{font-size:14px;line-height:1.4;margin-bottom:14px}
+.pc-chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:100px;background:var(--surface2);color:var(--ink2);border:1px solid var(--border)}
+.chip b{color:var(--ink)}
+.empty-card{background:var(--surface);border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;margin-bottom:16px}
+.empty-card-icon{font-size:32px;margin-bottom:8px}
+.empty-card-text{font-size:13px;color:var(--ink2)}
+.section-label{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--ink2);text-transform:uppercase;margin-bottom:10px;margin-top:4px}
+.field-row{display:flex;gap:10px;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:6px;flex:1}
+.field.wide{flex:2}
+.field label{font-size:12px;font-weight:500;color:var(--ink2)}
+.field input,.field select{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:13px 14px;font-size:16px;font-family:var(--sans);color:var(--ink);outline:none;width:100%;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.field input:focus,.field select:focus{border-color:var(--green)}
+.field input[type=number],.field input[type=date]{font-family:var(--mono)}
+.real-qty-box{background:var(--gl);border:1.5px solid var(--gb);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.rq-label{font-size:12px;font-weight:500;color:var(--green)}
+.rq-val{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--green)}
+.batchkey-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.bk-label{font-size:11px;color:var(--ink2)}
+.bk-val{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink)}
+.btn-submit{width:100%;padding:16px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px}
+.btn-submit:active{opacity:.85}
+.btn-submit:disabled{opacity:.45;cursor:not-allowed}
+.btn-submit.loading .submit-text::after{content:'';display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-left:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn-scan-again{width:100%;padding:13px;background:transparent;border:1.5px solid var(--border);border-radius:var(--r);font-size:14px;font-weight:600;color:var(--ink2);cursor:pointer;margin-top:10px;font-family:var(--sans)}
+.btn-scan-again:active{background:var(--surface2)}
+
+/* SUCCESS */
+#s-success{background:var(--green);align-items:center;justify-content:center;text-align:center;padding:40px 28px}
+.success-icon{font-size:72px;margin-bottom:24px;animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.success-title{font-size:28px;font-weight:700;color:#fff;margin-bottom:8px}
+.success-sub{font-size:14px;color:rgba(255,255,255,.8);margin-bottom:28px;line-height:1.5}
+.success-detail{background:rgba(255,255,255,.15);border-radius:var(--r);padding:16px 20px;margin-bottom:28px;width:100%;text-align:left}
+.sd-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.sd-row:last-child{border-bottom:none}
+.sd-label{font-size:12px;color:rgba(255,255,255,.7)}
+.sd-val{font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;text-align:right;max-width:60%;word-break:break-all}
+.btn-new{background:#fff;color:var(--green);border:none;border-radius:var(--r);padding:15px 32px;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--sans);width:100%;margin-bottom:12px}
+.btn-home-white{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:#fff;border-radius:var(--r);padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);width:100%}
+
+/* HTML5-QRCODE CUSTOM STYLE */
+#reader { background:#000; }
+#reader video { object-fit:cover !important; width:100% !important; height:100% !important; }
+#reader__scan_region { background:transparent !important; }
+#reader__dashboard { display:none !important; }
+#reader__camera_selection { display:none !important; }
+#reader img { display:none !important; }
+
+/* TOAST */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:100px;font-size:13px;font-family:var(--mono);transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 48px;width:100%;max-width:480px;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.modal-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;font-size:16px;font-family:var(--mono);color:var(--ink);outline:none;margin-bottom:12px}
+.modal-input:focus{border-color:var(--green)}
+.modal-btns{display:flex;gap:10px}
+.modal-cancel{flex:1;padding:13px;border-radius:10px;border:1.5px solid var(--border);background:transparent;font-size:14px;font-weight:600;color:var(--ink2);cursor:pointer;font-family:var(--sans)}
+.modal-confirm{flex:2;padding:13px;border-radius:10px;border:none;background:var(--green);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="screen active" id="s-home">
+  <div class="home-header">
+    <div class="home-eyebrow">Inventory Master 2026</div>
+    <div class="home-title">Nhập kho<br><em>Stock IN</em></div>
+    <div class="home-date" id="home-date"></div>
+  </div>
+  <div class="home-body">
+    <button class="main-btn" onclick="goScan()">
+      <div class="main-btn-icon">📷</div>
+      <div class="main-btn-info">
+        <div class="main-btn-name">Scan Barcode</div>
+        <div class="main-btn-desc">Quét barcode qua camera điện thoại</div>
+      </div>
+      <span class="main-btn-arrow">›</span>
+    </button>
+    <button class="main-btn" onclick="openManualModal()" style="border-color:var(--al)">
+      <div class="main-btn-icon" style="background:var(--al);border-color:rgba(183,98,10,.2)">⌨️</div>
+      <div class="main-btn-info">
+        <div class="main-btn-name">Nhập thủ công</div>
+        <div class="main-btn-desc">Nhập Stock Code hoặc Barcode bằng tay</div>
+      </div>
+      <span class="main-btn-arrow">›</span>
+    </button>
+    <div class="info-strip">
+      <div class="info-item">
+        <div class="info-val" id="stat-today">0</div>
+        <div class="info-lbl">Hôm nay</div>
+      </div>
+      <div class="info-item">
+        <div class="info-val" id="stat-session">0</div>
+        <div class="info-lbl">Session</div>
+      </div>
+      <div class="info-item">
+        <div class="info-val" id="stat-products">…</div>
+        <div class="info-lbl">Sản phẩm</div>
+      </div>
+    </div>
+    <button class="sync-btn" onclick="syncMaster()">🔄 Đồng bộ danh mục</button>
+  </div>
+</div>
+
+<!-- SCANNER -->
+<div class="screen" id="s-scan">
+  <div id="reader" style="width:100%;height:100%;position:absolute;inset:0"></div>
+  <div class="scan-top">
+    <button class="scan-back" onclick="stopScan()">←</button>
+    <span class="scan-label">Quét barcode sản phẩm</span>
+  </div>
+
+  <div class="scan-bottom">
+    <div class="scan-hint">Đặt barcode vào khung để quét tự động</div>
+    <button class="scan-manual-btn" onclick="stopScan().then(()=>openManualModal())">✎ Nhập thủ công</button>
+  </div>
+  <div class="scan-toast-overlay" id="scan-toast"></div>
+</div>
+
+<!-- FORM -->
+<div class="screen" id="s-form">
+  <div class="topbar">
+    <button class="btn-back" onclick="goHome()">←</button>
+    <div style="flex:1">
+      <div class="topbar-title">Stock IN</div>
+      <div class="topbar-sub" id="form-barcode">—</div>
+    </div>
+    <button class="btn-back" onclick="goScan()" style="background:var(--gl);border-color:var(--gb);font-size:20px">📷</button>
+  </div>
+  <div class="form-body">
+
+    <div id="product-wrap">
+      <div class="empty-card">
+        <div class="empty-card-icon">📦</div>
+        <div class="empty-card-text">Scan hoặc nhập mã để tìm sản phẩm</div>
+      </div>
+    </div>
+
+    <div class="section-label">Số lượng nhập</div>
+    <div class="field-row">
+      <div class="field wide">
+        <label>Qty Carton (thùng)</label>
+        <input type="number" id="qty-carton" min="0" value="0" inputmode="numeric" oninput="calc()">
+      </div>
+      <div class="field">
+        <label>Qty Loose (lẻ)</label>
+        <input type="number" id="qty-loose" min="0" value="0" inputmode="numeric" oninput="calc()">
+      </div>
+    </div>
+    <div class="real-qty-box">
+      <span class="rq-label">Real Unit Qty (= Carton × UPC + Loose)</span>
+      <span class="rq-val" id="real-qty">0</span>
+    </div>
+
+    <div class="section-label">Thông tin lô hàng</div>
+    <div class="field-row">
+      <div class="field wide">
+        <label>Expired Date</label>
+        <input type="date" id="exp-date" oninput="updateBK()">
+      </div>
+      <div class="field">
+        <label>Location</label>
+        <input type="text" id="location" placeholder="A1" maxlength="10"
+          oninput="this.value=this.value.toUpperCase()">
+      </div>
+    </div>
+    <div class="batchkey-box">
+      <span class="bk-label">BatchKey preview</span>
+      <span class="bk-val" id="bk-preview">—</span>
+    </div>
+
+    <button class="btn-submit" id="btn-submit" onclick="submit()">
+      <span class="submit-text">✓ Lưu Stock IN</span>
+    </button>
+    <button class="btn-scan-again" onclick="goScan()">📷 Scan sản phẩm khác</button>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div class="screen" id="s-success">
+  <div class="success-icon">✅</div>
+  <div class="success-title">Nhập kho thành công!</div>
+  <div class="success-sub" id="success-sub">Dữ liệu đã được ghi vào hệ thống</div>
+  <div class="success-detail" id="success-detail"></div>
+  <button class="btn-new" onclick="newEntry()">+ Nhập tiếp sản phẩm này</button>
+  <button class="btn-home-white" onclick="goHome()">← Về trang chủ</button>
+</div>
+
+<!-- MODAL manual -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title">Nhập Stock Code hoặc Barcode</div>
+    <input class="modal-input" id="manual-val" type="text"
+      placeholder="VD: JEL0001 hoặc 9300617012345"
+      autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Huỷ</button>
+      <button class="modal-confirm" onclick="confirmManual()">Xác nhận →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══ CONFIG ══ */
+const WEBHOOK = 'https://script.google.com/macros/s/AKfycbykPavi7DGlIRi4IM4eZjKjIIjp2fRBumZNadlv0O4-gjxiI62xNYXZC-BId8bBNs0h5w/exec';
+const SHEET_ID   = '1ixX7Za_CEgB89HiNJWYIYdtVFIPbYUluJ0JRNSeEFbs';
+const PUBLISH_ID = '2PACX-1vQqAsxJ-7dqYdXKIS-PaDYtisx3TUUAtamYp3oRtVaAh4TJ9IVfWRvY_LhRj4hCWsV-6S5dNarTKD6J';
+
+/* ══ STATE ══ */
+let master = null;       // { barcode/stockCode → {stockCode, description, unitPerCarton} }
+let current = null;      // sản phẩm hiện tại
+let sessionCount = 0;
+let stream = null;
+let reader = null;
+let scanning = false;
+let lastPayload = null;
+
+/* ══ INIT ══ */
+window.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  document.getElementById('home-date').textContent =
+    now.toLocaleDateString('vi-VN', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('exp-date').value = now.toISOString().split('T')[0];
+  loadStats();
+  loadMaster();
+});
+
+/* ══ MASTER CACHE ══ */
+async function loadMaster(force = false) {
+  const KEY = 'im26_master', T_KEY = 'im26_master_t';
+  if (!force) {
+    const saved = localStorage.getItem(KEY);
+    const age   = Date.now() - (parseInt(localStorage.getItem(T_KEY)) || 0);
+    if (saved && age < 86400000) {
+      master = JSON.parse(saved);
+      updateProductStat();
+      return;
+    }
+  }
+  showToast('🔄 Đang tải danh mục…');
+  try {
+    // Dùng export CSV — tránh lỗi CORS
+    const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQqAsxJ-7dqYdXKIS-PaDYtisx3TUUAtamYp3oRtVaAh4TJ9IVfWRvY_LhRj4hCWsV-6S5dNarTKD6J/pub?output=csv&gid=601101114';
+    // Safari requires explicit headers for Google Sheets CSV
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'text/csv, text/plain, */*' },
+      redirect: 'follow'
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+
+    // Parse CSV đơn giản — xử lý cả field có dấu phẩy bên trong quotes
+    const lines = text.trim().split('\n');
+    const headers = parseCSV(lines[0]);
+    const iSC  = headers.findIndex(h => h.trim() === 'Stock Code');
+    const iD   = headers.findIndex(h => h.trim() === 'Description');
+    const iBU  = headers.findIndex(h => h.trim() === 'Barcode Unit');
+    const iBC  = headers.findIndex(h => h.trim() === 'Barcode Carton');
+    const iUPC = headers.findIndex(h => h.trim() === 'Unit Per Carton');
+
+    const map = {};
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const cols = parseCSV(lines[i]);
+      const sc   = (cols[iSC]  || '').trim();
+      const desc = (cols[iD]   || '').trim();
+      const bU   = (cols[iBU]  || '').trim();
+      const bC   = (cols[iBC]  || '').trim();
+      const upc  = parseFloat(cols[iUPC]) || 1;
+      if (!sc) continue;
+      const info = {stockCode: sc, description: desc, unitPerCarton: upc};
+      map[sc.toUpperCase()] = info;
+      if (bU) map[bU] = info;
+      if (bC) map[bC] = info;
+    }
+
+    master = map;
+    localStorage.setItem(KEY, JSON.stringify(map));
+    localStorage.setItem(T_KEY, Date.now().toString());
+    updateProductStat();
+    showToast('✓ Đã tải ' + countUnique() + ' sản phẩm', 'success');
+  } catch(e) {
+    console.error('loadMaster error:', e);
+    showToast('⚠️ Lỗi: ' + (e.message || JSON.stringify(e)), 'error');
+  }
+}
+
+// Parse một dòng CSV (xử lý field có dấu phẩy trong quotes)
+function parseCSV(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function syncMaster() { loadMaster(true); }
+
+function countUnique() {
+  if (!master) return 0;
+  return new Set(Object.values(master).map(v => v.stockCode)).size;
+}
+
+function updateProductStat() {
+  document.getElementById('stat-products').textContent = countUnique().toLocaleString();
+}
+
+/* ══ NAVIGATION ══ */
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goHome()  { stopScan().then(() => show('s-home')); }
+function goScan()  { stopScan().then(() => { show('s-scan'); startScan(); }); }
+function newEntry(){ show('s-form'); }
+
+/* ══ SCANNER — Html5-QrCode ══ */
+let html5QrCode = null;
+
+async function startScan() {
+  if (scanning) return;
+  scanning = true;
+
+  // Html5-QrCode cần div có id, không dùng <video> trực tiếp
+  try {
+    html5QrCode = new Html5Qrcode('reader');
+    await html5QrCode.start(
+      { facingMode: 'environment' },
+      {
+        fps: 15,
+        qrbox: { width: 250, height: 160 },
+        aspectRatio: 1.777,
+        supportedScanTypes: [
+          Html5QrcodeScanType.SCAN_TYPE_CAMERA
+        ]
+      },
+      (decodedText) => {
+        if (scanning) {
+          scanning = false;
+          onScanned(decodedText);
+        }
+      },
+      (err) => { /* ignore scan errors */ }
+    );
+  } catch(e) {
+    scanning = false;
+    console.error('Scanner error:', e);
+    if (e.toString().includes('Permission') || e.toString().includes('NotAllowed')) {
+      showToast('⛔ Cần cấp quyền camera', 'error');
+    } else {
+      showToast('📷 Không mở được camera: ' + e, 'error');
+    }
+    stopScan();
+    openManualModal();
+  }
+}
+
+async function stopScan() {
+  scanning = false;
+  if (html5QrCode) {
+    try {
+      await html5QrCode.stop();
+      html5QrCode.clear();
+    } catch(e) {}
+    html5QrCode = null;
+  }
+}
+
+function onScanned(code) {
+  code = code.trim();
+  const t = document.getElementById('scan-toast');
+  t.textContent = '✓ ' + code; t.style.display = 'block';
+  setTimeout(() => {
+    t.style.display = 'none';
+    stopScan().then(() => fillForm(code));
+  }, 700);
+}
+
+/* ══ FORM ══ */
+function fillForm(scanCode) {
+  show('s-form');
+  document.getElementById('form-barcode').textContent = scanCode;
+
+  const key  = scanCode.toUpperCase();
+  const info = master ? (master[key] || master[scanCode] || null) : null;
+
+  if (info) {
+    current = {...info, scanCode};
+    document.getElementById('product-wrap').innerHTML = `
+      <div class="product-card">
+        <div class="pc-eyebrow"><span class="pc-dot"></span>Sản phẩm tìm thấy</div>
+        <div class="pc-code">${info.stockCode}</div>
+        <div class="pc-desc">${info.description || '—'}</div>
+        <div class="pc-chips">
+          <span class="chip">UPC: <b>${info.unitPerCarton}</b></span>
+          <span class="chip">Barcode: <b>${scanCode}</b></span>
+        </div>
+      </div>`;
+  } else {
+    current = {stockCode:'', description:'', unitPerCarton:1, scanCode};
+    document.getElementById('product-wrap').innerHTML = `
+      <div class="product-card" style="border-color:var(--amber);background:var(--al)">
+        <div class="pc-eyebrow"><span class="pc-dot" style="background:var(--amber)"></span>Chưa có trong cache</div>
+        <div class="pc-code" style="color:var(--amber)">${scanCode}</div>
+        <div class="pc-desc" style="color:var(--amber)">Webhook sẽ tự lookup Stock Code từ Master Sheet</div>
+        <div class="pc-chips"><span class="chip">Scan: <b>${scanCode}</b></span></div>
+      </div>`;
+  }
+  calc();
+  updateBK();
+}
+
+function calc() {
+  const carton = parseInt(document.getElementById('qty-carton').value) || 0;
+  const loose  = parseInt(document.getElementById('qty-loose').value)  || 0;
+  const upc    = current ? (current.unitPerCarton || 1) : 1;
+  document.getElementById('real-qty').textContent = ((carton * upc) + loose).toLocaleString();
+  updateBK();
+}
+
+function updateBK() {
+  const d  = document.getElementById('exp-date').value;
+  const sc = current ? current.stockCode : '';
+  document.getElementById('bk-preview').textContent =
+    d ? (sc || '') + '-' + d.replace(/-/g,'') : '—';
+}
+
+/* ══ SUBMIT ══ */
+async function submit() {
+  if (!current) { showToast('⚠️ Chưa có sản phẩm', 'error'); return; }
+
+  const carton   = parseInt(document.getElementById('qty-carton').value) || 0;
+  const loose    = parseInt(document.getElementById('qty-loose').value)  || 0;
+  const expDate  = document.getElementById('exp-date').value;
+  const location = document.getElementById('location').value.trim().toUpperCase();
+
+  if (!expDate)                { showToast('⚠️ Nhập Expired Date', 'error'); return; }
+  if (carton === 0 && loose === 0) { showToast('⚠️ Nhập số lượng > 0', 'error'); return; }
+
+  const upc      = current.unitPerCarton || 1;
+  const realQty  = (carton * upc) + loose;
+  const yyyymmdd = expDate.replace(/-/g,'');
+  const sc       = current.stockCode;
+  const batchKey = (sc || '') + '-' + yyyymmdd;
+  const recordId = 'REC-' + Date.now();
+  const ts       = new Date().toISOString();
+
+  // Payload gửi lên webhook
+  // doPost() đọc: stockCode, scanCode, recordId
+  // → nếu stockCode trống → lookup từ scanCode
+  // → sau đó rebuildOneStockCode
+  // App cần ghi Movement row TRƯỚC khi gọi webhook rebuild
+  // Vì Apps Script hiện tại chỉ rebuild (không append row),
+  // ta gửi full payload với action='stockIn' để Apps Script xử lý cả 2
+  const payload = {
+    action:        'stockIn',
+    recordId,
+    stockCode:     sc,
+    scanCode:      current.scanCode,
+    type:          'IN',
+    qtyCarton:     carton,
+    qtyLoose:      loose,
+    realUnitQty:   realQty,
+    unitPerCarton: upc,
+    expiredDate:   expDate,
+    batchKey,
+    locationCode:  location,
+    timeStamp:     ts
+  };
+  lastPayload = payload;
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true; btn.classList.add('loading');
+  btn.querySelector('.submit-text').textContent = 'Đang lưu…';
+
+  try {
+    await fetch(WEBHOOK, {
+      method: 'POST',
+      mode:   'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body:   JSON.stringify(payload)
+    });
+
+    sessionCount++;
+    saveTodayStat();
+    document.getElementById('stat-session').textContent = sessionCount;
+    showSuccess(payload, realQty, batchKey);
+
+  } catch(e) {
+    showToast('❌ Lỗi gửi dữ liệu. Kiểm tra mạng.', 'error');
+  } finally {
+    btn.disabled = false; btn.classList.remove('loading');
+    btn.querySelector('.submit-text').textContent = '✓ Lưu Stock IN';
+  }
+}
+
+function showSuccess(p, realQty, batchKey) {
+  document.getElementById('success-sub').textContent =
+    (p.stockCode || p.scanCode) + ' đã gửi lên hệ thống';
+
+  const expFmt = p.expiredDate
+    ? new Date(p.expiredDate + 'T00:00:00').toLocaleDateString('vi-VN') : '—';
+
+  document.getElementById('success-detail').innerHTML = `
+    <div class="sd-row"><span class="sd-label">Stock Code</span><span class="sd-val">${p.stockCode || '(webhook lookup)'}</span></div>
+    <div class="sd-row"><span class="sd-label">Scan Code</span><span class="sd-val">${p.scanCode}</span></div>
+    <div class="sd-row"><span class="sd-label">Qty Carton</span><span class="sd-val">${p.qtyCarton}</span></div>
+    <div class="sd-row"><span class="sd-label">Qty Loose</span><span class="sd-val">${p.qtyLoose}</span></div>
+    <div class="sd-row"><span class="sd-label">Real Unit Qty</span><span class="sd-val">${realQty}</span></div>
+    <div class="sd-row"><span class="sd-label">Expired Date</span><span class="sd-val">${expFmt}</span></div>
+    <div class="sd-row"><span class="sd-label">BatchKey</span><span class="sd-val">${batchKey}</span></div>
+    <div class="sd-row"><span class="sd-label">Location</span><span class="sd-val">${p.locationCode || '—'}</span></div>
+    <div class="sd-row"><span class="sd-label">Record ID</span><span class="sd-val">${p.recordId}</span></div>
+  `;
+  show('s-success');
+}
+
+/* ══ MANUAL ══ */
+function openManualModal() {
+  document.getElementById('modal').classList.add('show');
+  setTimeout(() => document.getElementById('manual-val').focus(), 300);
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  document.getElementById('manual-val').value = '';
+}
+function confirmManual() {
+  const v = document.getElementById('manual-val').value.trim();
+  if (!v) return;
+  closeModal();
+  fillForm(v);
+}
+document.getElementById('manual-val').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmManual();
+});
+
+/* ══ STATS ══ */
+function loadStats() {
+  const s = JSON.parse(localStorage.getItem('im26_stats') || '{}');
+  const today = new Date().toDateString();
+  document.getElementById('stat-today').textContent = s.date === today ? (s.count || 0) : 0;
+  document.getElementById('stat-session').textContent = 0;
+}
+function saveTodayStat() {
+  const today = new Date().toDateString();
+  const s = JSON.parse(localStorage.getItem('im26_stats') || '{}');
+  const prev = s.date === today ? (s.count || 0) : 0;
+  localStorage.setItem('im26_stats', JSON.stringify({date:today, count:prev+1}));
+  document.getElementById('stat-today').textContent = prev + 1;
+}
+
+/* ══ TOAST ══ */
+let _tt = null;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('show'), 3200);
+}
+</script>
+
+<!-- Html5-QrCode scanner — tối ưu cho iOS Safari -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</body>
+</html>
