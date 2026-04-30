@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f172a">
+<title>Stock IN — Inventory Master</title>
+<style>
+:root {
+  --bg:#0f172a; --surface:#1e293b; --surface2:#263347;
+  --border:rgba(148,163,184,0.15); --border2:rgba(148,163,184,0.3);
+  --text:#f1f5f9; --text2:#94a3b8; --text3:#64748b;
+  --accent:#38bdf8; --accent-dim:rgba(56,189,248,0.12); --accent-border:rgba(56,189,248,0.35);
+  --green:#4ade80; --green-dim:rgba(74,222,128,0.12);
+  --red:#f87171; --amber:#fbbf24;
+  --r:12px; --rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;min-height:100dvh;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
+
+.header{position:sticky;top:0;z-index:50;background:rgba(15,23,42,0.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:0.5px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;gap:10px}
+.badge{background:var(--accent-dim);border:0.5px solid var(--accent-border);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:.05em}
+.header h1{font-size:17px;font-weight:600;flex:1}
+.clock{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums}
+
+.main{padding:16px;max-width:480px;margin:0 auto}
+
+.sbar{display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rs);font-size:12px;color:var(--text3)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s}
+.sdot.ok{background:var(--green)}
+.sdot.spin{background:var(--amber);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.steps{display:flex;gap:6px;align-items:center;justify-content:center;padding:10px 0 4px}
+.step{width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .3s}
+.step.done{background:var(--accent)}
+.step.active{background:var(--amber);width:18px;border-radius:3px}
+
+.scan-box{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.scan-lbl{padding:10px 14px 8px;font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;border-bottom:0.5px solid var(--border)}
+.scan-row{display:flex;align-items:stretch}
+.scan-input{flex:1;background:transparent;border:none;padding:14px;font-size:15px;color:var(--text);outline:none;font-family:'SF Mono','Fira Code',monospace}
+.scan-input::placeholder{color:var(--text3)}
+.cam-btn{background:var(--accent-dim);border:none;border-left:0.5px solid var(--border);padding:0 18px;color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;min-width:56px}
+.cam-btn:active{background:rgba(56,189,248,.25)}
+
+.pcard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden;display:none}
+.pcard.on{display:block}
+.pfound{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--green-dim);border-bottom:0.5px solid rgba(74,222,128,.2)}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.pfound-txt{font-size:12px;color:var(--green);font-weight:500}
+.pinfo{padding:14px}
+.pcode{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.pname{font-size:16px;font-weight:600;margin-bottom:8px;line-height:1.3}
+.pmeta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{background:var(--surface2);border:0.5px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--text2)}
+.pill span{color:var(--accent);font-weight:600}
+
+.nfcard{background:var(--surface);border:0.5px solid rgba(248,113,113,.3);border-radius:var(--r);margin-bottom:12px;padding:14px;display:none;align-items:center;gap:10px;font-size:14px;color:var(--red)}
+.nfcard.on{display:flex}
+
+.fcard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px;display:none}
+.fcard.on{display:block}
+.flbl{padding:10px 14px 8px;font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;border-bottom:0.5px solid var(--border)}
+.fg{padding:12px 14px;border-bottom:0.5px solid var(--border)}
+.fg:last-child{border-bottom:none}
+.fg label{display:block;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+.fg input{width:100%;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 12px;font-size:15px;color:var(--text);outline:none;-webkit-appearance:none;transition:border-color .15s}
+.fg input:focus{border-color:var(--accent)}
+.fg input::placeholder{color:var(--text3)}
+.fg input[readonly]{color:var(--text2)}
+.qwrap{padding:12px 14px;border-bottom:0.5px solid var(--border)}
+.qlbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.qrow{display:flex;gap:8px}
+.qcol{flex:1}
+.qcol label{display:block;font-size:11px;color:var(--text3);margin-bottom:5px}
+.qcol input{width:100%;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 12px;font-size:16px;color:var(--text);outline:none;-webkit-appearance:none;text-align:center}
+.qcol input:focus{border-color:var(--accent)}
+
+.computed{margin:0 14px 0;padding:10px 12px;background:var(--accent-dim);border:0.5px solid var(--accent-border);border-radius:var(--rs);display:none;align-items:center;justify-content:space-between}
+.computed.on{display:flex}
+.computed-lbl{font-size:12px;color:var(--accent)}
+.computed-val{font-size:22px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+
+.bkrow{padding:10px 14px;border-top:0.5px solid var(--border);display:none;align-items:center;gap:8px}
+.bkrow.on{display:flex}
+.bklbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;flex-shrink:0}
+.bkval{font-size:13px;color:var(--amber);font-family:'SF Mono',monospace;font-weight:500;flex:1;word-break:break-all}
+
+.save-btn{width:100%;background:var(--accent);color:#0f172a;border:none;border-radius:var(--r);padding:16px;font-size:16px;font-weight:700;cursor:pointer;display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;transition:opacity .15s,transform .1s}
+.save-btn.on{display:flex}
+.save-btn:active{transform:scale(.98);opacity:.9}
+.save-btn:disabled{opacity:.5;cursor:not-allowed}
+.spinner{width:18px;height:18px;border:2px solid rgba(15,23,42,.3);border-top-color:#0f172a;border-radius:50%;animation:spin .7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.reset-btn{width:100%;background:transparent;border:0.5px solid var(--border2);border-radius:var(--r);padding:13px;font-size:14px;color:var(--text3);cursor:pointer;margin-bottom:24px}
+.reset-btn:active{color:var(--text)}
+
+/* CAMERA */
+.cam-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center}
+.cam-overlay.open{display:flex}
+.cam-box{width:min(340px,92vw);background:var(--surface);border-radius:20px;overflow:hidden;border:0.5px solid var(--border2)}
+.cam-hdr{padding:14px 16px;display:flex;align-items:center;border-bottom:0.5px solid var(--border)}
+.cam-title{flex:1;font-size:15px;font-weight:600}
+.cam-close{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:none;color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#vid-wrap{position:relative;width:100%;background:#000;aspect-ratio:4/3;overflow:hidden}
+#qr-video{width:100%;height:100%;object-fit:cover}
+.scan-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame-box{width:200px;height:200px;border:2px solid var(--accent);border-radius:12px;position:relative}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);animation:scanline 2s ease-in-out infinite;opacity:.8}
+@keyframes scanline{0%,100%{top:0}50%{top:calc(100% - 2px)}}
+.cam-hint{padding:12px 16px;text-align:center;font-size:13px;color:var(--text3);border-top:0.5px solid var(--border)}
+.cam-manual-btn{margin:0 16px 16px;width:calc(100% - 32px);background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--rs);padding:10px;color:var(--text2);font-size:14px;cursor:pointer}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:0.5px solid var(--border2);border-radius:24px;padding:11px 20px;font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;z-index:300;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.success{border-color:rgba(74,222,128,.4);color:var(--green)}
+.toast.error{border-color:rgba(248,113,113,.4);color:var(--red)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">IN</div>
+  <h1>Stock IN</h1>
+  <div class="clock" id="clock">--:--</div>
+</div>
+
+<div class="main">
+  <div class="sbar">
+    <div class="sdot spin" id="sdot"></div>
+    <span id="stext">Đang tải danh mục...</span>
+  </div>
+
+  <div class="steps">
+    <div class="step active" id="d1"></div>
+    <div class="step" id="d2"></div>
+    <div class="step" id="d3"></div>
+  </div>
+  <div style="height:12px"></div>
+
+  <div class="scan-box">
+    <div class="scan-lbl">Scan Barcode</div>
+    <div class="scan-row">
+      <input class="scan-input" id="bi" type="text" placeholder="Barcode hoặc Stock Code..." autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text">
+      <button class="cam-btn" id="cam-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="nfcard" id="nf">⊘ Không tìm thấy — kiểm tra lại barcode</div>
+
+  <div class="pcard" id="pc">
+    <div class="pfound"><div class="pdot"></div><div class="pfound-txt">Sản phẩm đã xác nhận</div></div>
+    <div class="pinfo">
+      <div class="pcode" id="p-code"></div>
+      <div class="pname" id="p-name"></div>
+      <div class="pmeta">
+        <div class="pill">UPC/CTN: <span id="p-upc"></span></div>
+        <div class="pill" id="p-type"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fcard" id="fc">
+    <div class="flbl">Chi tiết nhập kho</div>
+    <div class="qwrap">
+      <div class="qlbl">Số lượng</div>
+      <div class="qrow">
+        <div class="qcol"><label>Thùng (Carton)</label><input type="number" id="qc" min="0" value="0" inputmode="numeric"></div>
+        <div class="qcol"><label>Lẻ (Loose)</label><input type="number" id="ql" min="0" value="0" inputmode="numeric"></div>
+      </div>
+    </div>
+    <div class="computed" id="comp">
+      <div class="computed-lbl">Real Unit Qty</div>
+      <div class="computed-val" id="comp-val">0</div>
+    </div>
+    <div class="fg"><label>Expired Date</label><input type="date" id="exp"></div>
+    <div class="bkrow" id="bkrow"><div class="bklbl">BatchKey</div><div class="bkval" id="bkval"></div></div>
+    <div class="fg"><label>Location Code (tuỳ chọn)</label><input type="text" id="loc" placeholder="A1, B2..." autocomplete="off"></div>
+    <div class="fg"><label>Ghi chú</label><input type="text" id="note" placeholder="Tuỳ chọn..." autocomplete="off"></div>
+  </div>
+
+  <button class="save-btn" id="save-btn" onclick="doSave()">
+    <div class="spinner" id="spin"></div>
+    <span id="save-lbl">Lưu Stock IN</span>
+  </button>
+  <button class="reset-btn" onclick="doReset()">↺ Nhập mới</button>
+</div>
+
+<!-- CAMERA -->
+<div class="cam-overlay" id="cam-overlay">
+  <div class="cam-box">
+    <div class="cam-hdr">
+      <div class="cam-title">Quét mã vạch</div>
+      <button class="cam-close" onclick="closeCamera()">✕</button>
+    </div>
+    <div id="vid-wrap">
+      <video id="qr-video" playsinline muted autoplay></video>
+      <div class="scan-frame"><div class="scan-frame-box"><div class="scan-line"></div></div></div>
+    </div>
+    <div class="cam-hint">Đưa mã vạch vào khung — tự động nhận diện</div>
+    <button class="cam-manual-btn" onclick="closeCamera()">Nhập thủ công</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.18.6/umd/index.min.js"></script>
+<script>
+const WEBHOOK = 'https://script.google.com/macros/s/AKfycbykPavi7DGlIRi4IM4eZjKjIIjp2fRBumZNadlv0O4-gjxiI62xNYXZC-BId8bBNs0h5w/exec';
+
+let masterData = [], lookupMap = {}, curProduct = null;
+let codeReader = null, camActive = false;
+
+// ── CLOCK ────────────────────────────────────────────────────
+function tick() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(tick,1000); tick();
+
+// ── LOAD MASTER via doGet ────────────────────────────────────
+async function loadMaster() {
+  setStatus('spin','Đang tải danh mục...');
+  try {
+    const url = WEBHOOK + '?action=getMaster';
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json.success || !json.data) throw new Error('No data');
+
+    masterData = json.data.map(r => ({
+      stockCode:    String(r['Stock Code']    || r['StockCode']    || '').trim(),
+      description:  String(r['Description']   || r['description']  || '').trim(),
+      barcodeUnit:  String(r['Barcode Unit']   || r['BarcodeUnit']  || '').trim(),
+      barcodeCarton:String(r['Barcode Carton'] || r['BarcodeCarton']|| '').trim(),
+      unitPerCarton:parseInt(r['Unit Per Carton']|| r['UnitPerCarton']|| 1)||1
+    })).filter(r => r.stockCode);
+
+    lookupMap = {};
+    masterData.forEach(p => {
+      if (p.barcodeUnit)   lookupMap[p.barcodeUnit]   = {product:p, scanType:'Unit'};
+      if (p.barcodeCarton) lookupMap[p.barcodeCarton] = {product:p, scanType:'Carton'};
+      lookupMap[p.stockCode] = {product:p, scanType:'StockCode'};
+    });
+    setStatus('ok', `✓ ${masterData.length} sản phẩm đã tải`);
+  } catch(e) {
+    setStatus('err','Không tải được danh mục — thử lại');
+    console.warn('loadMaster failed:',e);
+  }
+}
+
+function setStatus(type, msg) {
+  const dot = document.getElementById('sdot');
+  const txt = document.getElementById('stext');
+  dot.className = 'sdot' + (type==='ok'?' ok':type==='spin'?' spin':'');
+  txt.textContent = msg;
+}
+
+// ── BARCODE INPUT ────────────────────────────────────────────
+const bi = document.getElementById('bi');
+bi.addEventListener('keydown', e => { if(e.key==='Enter') process(bi.value); });
+bi.addEventListener('input', () => {
+  const v = bi.value.trim();
+  if (v.length >= 4 && lookupMap[v]) setTimeout(()=>process(v), 100);
+});
+
+function process(code) {
+  code = code.trim();
+  if (!code) return;
+  const found = lookupMap[code];
+  if (!found) { showNF(); return; }
+  showProduct(found.product, found.scanType, code);
+}
+
+function showNF() {
+  hide('pc'); hide('fc'); hide('save-btn'); hide('comp'); hide('bkrow');
+  show('nf'); curProduct = null; setDot(1);
+}
+
+function showProduct(p, scanType, raw) {
+  curProduct = {p, scanType, raw};
+  document.getElementById('p-code').textContent = p.stockCode;
+  document.getElementById('p-name').textContent = p.description || '—';
+  document.getElementById('p-upc').textContent  = p.unitPerCarton;
+  document.getElementById('p-type').textContent = 'Scan: ' + scanType;
+  hide('nf'); show('pc'); show('fc'); show('save-btn');
+  document.getElementById('qc').value = '0';
+  document.getElementById('ql').value = '0';
+  document.getElementById('exp').value = '';
+  document.getElementById('loc').value = '';
+  document.getElementById('note').value = '';
+  hide('comp'); hide('bkrow');
+  calcQty(); setDot(2);
+}
+
+// ── QTY ──────────────────────────────────────────────────────
+document.getElementById('qc').addEventListener('input', calcQty);
+document.getElementById('ql').addEventListener('input', calcQty);
+document.getElementById('exp').addEventListener('input', ()=>{ calcQty(); updateBK(); });
+
+function calcQty() {
+  if (!curProduct) return;
+  const c = parseInt(document.getElementById('qc').value)||0;
+  const l = parseInt(document.getElementById('ql').value)||0;
+  const total = c * curProduct.p.unitPerCarton + l;
+  document.getElementById('comp-val').textContent = total;
+  (c>0||l>0) ? show('comp') : hide('comp');
+}
+
+function updateBK() {
+  if (!curProduct) return;
+  const exp = document.getElementById('exp').value;
+  if (!exp) { hide('bkrow'); return; }
+  const bk = curProduct.p.stockCode + '-' + exp.replace(/-/g,'');
+  document.getElementById('bkval').textContent = bk;
+  show('bkrow'); setDot(3);
+}
+
+// ── SAVE ─────────────────────────────────────────────────────
+async function doSave() {
+  if (!curProduct) return;
+  const c   = parseInt(document.getElementById('qc').value)||0;
+  const l   = parseInt(document.getElementById('ql').value)||0;
+  const exp = document.getElementById('exp').value;
+  const loc = document.getElementById('loc').value.trim();
+  const note= document.getElementById('note').value.trim();
+  if (!exp) { toast('Nhập Expired Date trước','error'); return; }
+  const total = c * curProduct.p.unitPerCarton + l;
+  if (total <= 0) { toast('Số lượng phải > 0','error'); return; }
+  const bk = curProduct.p.stockCode + '-' + exp.replace(/-/g,'');
+
+  setSaving(true);
+  try {
+    await fetch(WEBHOOK, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'stockIn',
+        stockCode: curProduct.p.stockCode,
+        description: curProduct.p.description,
+        scanCode: curProduct.raw,
+        scanType: curProduct.scanType,
+        qtyCarton: c, qtyLoose: l,
+        unitPerCarton: curProduct.p.unitPerCarton,
+        realUnitQty: total,
+        expiredDate: exp, batchKey: bk,
+        locationCode: loc, note,
+        timestamp: new Date().toISOString()
+      })
+    });
+    toast(`✓ Đã lưu ${total} units — ${bk}`,'success');
+    setTimeout(doReset, 2000);
+  } catch(e) {
+    toast('Lỗi kết nối. Thử lại.','error');
+  } finally { setSaving(false); }
+}
+
+function setSaving(s) {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = s;
+  document.getElementById('spin').style.display = s?'block':'none';
+  document.getElementById('save-lbl').textContent = s?'Đang lưu...':'Lưu Stock IN';
+}
+
+function doReset() {
+  bi.value = ''; curProduct = null;
+  hide('pc'); hide('fc'); hide('save-btn'); hide('nf'); hide('comp'); hide('bkrow');
+  setDot(1); bi.focus();
+}
+
+// ── CAMERA (ZXing) ───────────────────────────────────────────
+document.getElementById('cam-btn').addEventListener('click', openCamera);
+
+async function openCamera() {
+  document.getElementById('cam-overlay').classList.add('open');
+  try {
+    if (typeof ZXing === 'undefined') { toast('Thư viện chưa sẵn sàng','error'); closeCamera(); return; }
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    // prefer back camera
+    const cam = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length-1];
+    const deviceId = cam ? cam.deviceId : undefined;
+    camActive = true;
+    codeReader.decodeFromVideoDevice(deviceId, 'qr-video', (result, err) => {
+      if (!camActive) return;
+      if (result) {
+        const code = result.getText();
+        closeCamera();
+        bi.value = code;
+        process(code);
+        if (navigator.vibrate) navigator.vibrate(80);
+      }
+    });
+  } catch(e) {
+    toast('Không mở được camera','error');
+    closeCamera();
+  }
+}
+
+function closeCamera() {
+  camActive = false;
+  document.getElementById('cam-overlay').classList.remove('open');
+  if (codeReader) { try { codeReader.reset(); } catch(e){} codeReader = null; }
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function show(id){ document.getElementById(id).classList.add('on'); }
+function hide(id){ document.getElementById(id).classList.remove('on'); }
+
+function setDot(active) {
+  [1,2,3].forEach(i => {
+    const d = document.getElementById('d'+i);
+    d.className = 'step' + (i<active?' done':i===active?' active':'');
+  });
+}
+
+let tTimer;
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast '+(type||'');
+  void t.offsetWidth; t.classList.add('show');
+  clearTimeout(tTimer);
+  tTimer = setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+loadMaster();
+bi.focus();
+</script>
+</body>
+</html>
