@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f172a">
+<title>Stock IN — Inventory Master</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #263347;
+    --border: rgba(148,163,184,0.15);
+    --border2: rgba(148,163,184,0.3);
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --accent: #38bdf8;
+    --accent-dim: rgba(56,189,248,0.12);
+    --accent-border: rgba(56,189,248,0.35);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --amber: #fbbf24;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    min-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+    overscroll-behavior: none;
+  }
+
+  /* HEADER */
+  .header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(15,23,42,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 0.5px solid var(--border);
+    padding: 14px 16px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .header-badge {
+    background: var(--accent-dim);
+    border: 0.5px solid var(--accent-border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px; font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .header h1 { font-size: 17px; font-weight: 600; color: var(--text); flex: 1; }
+  .header-time { font-size: 12px; color: var(--text3); font-variant-numeric: tabular-nums; }
+
+  /* MAIN */
+  .main { padding: 16px; max-width: 480px; margin: 0 auto; }
+
+  /* SCAN SECTION */
+  .scan-section {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .scan-label {
+    padding: 10px 14px 8px;
+    font-size: 11px; font-weight: 600;
+    color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .scan-input-row {
+    display: flex; align-items: stretch; gap: 0;
+  }
+  .scan-input {
+    flex: 1; background: transparent; border: none;
+    padding: 14px; font-size: 15px; color: var(--text);
+    outline: none; font-family: 'SF Mono', 'Fira Code', monospace;
+    letter-spacing: 0.02em;
+  }
+  .scan-input::placeholder { color: var(--text3); }
+  .scan-btn {
+    background: var(--accent-dim);
+    border: none; border-left: 0.5px solid var(--border);
+    padding: 0 16px;
+    color: var(--accent); font-size: 20px;
+    cursor: pointer; display: flex; align-items: center;
+    transition: background 0.15s;
+  }
+  .scan-btn:active { background: rgba(56,189,248,0.22); }
+
+  /* PRODUCT CARD */
+  .product-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+    display: none;
+  }
+  .product-card.visible { display: block; }
+  .product-found {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    background: var(--green-dim);
+    border-bottom: 0.5px solid rgba(74,222,128,0.2);
+  }
+  .product-found .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .product-found-text { font-size: 12px; color: var(--green); font-weight: 500; }
+  .product-info { padding: 14px; }
+  .product-code { font-size: 11px; color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 4px; }
+  .product-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
+  .product-meta {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .meta-pill {
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: 20px; padding: 3px 10px;
+    font-size: 12px; color: var(--text2);
+  }
+  .meta-pill span { color: var(--accent); font-weight: 500; }
+
+  /* NOT FOUND CARD */
+  .not-found-card {
+    background: var(--surface);
+    border: 0.5px solid rgba(248,113,113,0.3);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    padding: 14px;
+    display: none;
+    align-items: center; gap: 10px;
+  }
+  .not-found-card.visible { display: flex; }
+  .not-found-icon { font-size: 18px; }
+  .not-found-text { font-size: 14px; color: var(--red); }
+
+  /* FORM */
+  .form-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .form-card.visible { display: block; }
+  .form-section-label {
+    padding: 10px 14px 8px;
+    font-size: 11px; font-weight: 600;
+    color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .form-group {
+    padding: 12px 14px;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .form-group:last-child { border-bottom: none; }
+  .form-group label {
+    display: block; font-size: 11px; font-weight: 600;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em;
+    margin-bottom: 7px;
+  }
+  .form-group input, .form-group select {
+    width: 100%; background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 11px 12px;
+    font-size: 15px; color: var(--text); outline: none;
+    -webkit-appearance: none; appearance: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--accent);
+  }
+  .form-group input[readonly] { color: var(--text2); cursor: not-allowed; }
+  .form-group input::placeholder { color: var(--text3); }
+  .qty-row { display: flex; gap: 8px; }
+  .qty-row .form-group { flex: 1; padding: 0; border: none; }
+  .qty-row-wrap { padding: 12px 14px; border-bottom: 0.5px solid var(--border); }
+  .qty-row-label {
+    font-size: 11px; font-weight: 600;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em;
+    margin-bottom: 8px;
+  }
+
+  /* COMPUTED */
+  .computed-banner {
+    margin: 0 14px 12px;
+    background: var(--accent-dim);
+    border: 0.5px solid var(--accent-border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    display: none;
+  }
+  .computed-banner.visible { display: flex; }
+  .computed-label { font-size: 12px; color: var(--accent); }
+  .computed-value { font-size: 20px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+  /* BATCHKEY */
+  .batchkey-row {
+    padding: 10px 14px; border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    display: none;
+  }
+  .batchkey-row.visible { display: flex; }
+  .batchkey-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; flex-shrink: 0; }
+  .batchkey-value {
+    font-size: 13px; color: var(--amber);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-weight: 500; flex: 1; word-break: break-all;
+  }
+
+  /* SAVE BUTTON */
+  .save-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #0f172a;
+    border: none; border-radius: var(--radius);
+    padding: 16px;
+    font-size: 16px; font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    display: none;
+    align-items: center; justify-content: center; gap: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+    margin-bottom: 12px;
+  }
+  .save-btn.visible { display: flex; }
+  .save-btn:active { transform: scale(0.98); opacity: 0.9; }
+  .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .save-btn .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(15,23,42,0.3);
+    border-top-color: #0f172a;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 24px; padding: 11px 20px;
+    font-size: 14px; font-weight: 500; color: var(--text);
+    white-space: nowrap;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+    opacity: 0; z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.success { border-color: rgba(74,222,128,0.4); color: var(--green); }
+  .toast.error { border-color: rgba(248,113,113,0.4); color: var(--red); }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* CAMERA MODAL */
+  .camera-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 200; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    display: none;
+  }
+  .camera-overlay.open { display: flex; }
+  .camera-box {
+    width: min(340px, 92vw);
+    background: var(--surface);
+    border-radius: 20px; overflow: hidden;
+    border: 0.5px solid var(--border2);
+  }
+  .camera-header {
+    padding: 14px 16px; display: flex; align-items: center;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .camera-title { flex: 1; font-size: 15px; font-weight: 600; }
+  .camera-close {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface2); border: none;
+    color: var(--text2); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #video-container {
+    position: relative; width: 100%; background: #000;
+    aspect-ratio: 4/3; overflow: hidden;
+  }
+  #qr-video { width: 100%; height: 100%; object-fit: cover; }
+  .scan-frame {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .scan-frame-box {
+    width: 180px; height: 180px;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    position: relative;
+  }
+  .scan-line {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent);
+    animation: scanline 2s ease-in-out infinite;
+    opacity: 0.7;
+  }
+  @keyframes scanline {
+    0%, 100% { top: 0; }
+    50% { top: calc(100% - 2px); }
+  }
+  .camera-hint {
+    padding: 12px 16px; text-align: center;
+    font-size: 13px; color: var(--text3);
+    border-top: 0.5px solid var(--border);
+  }
+
+  /* RESET */
+  .reset-btn {
+    width: 100%; background: transparent;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius); padding: 13px;
+    font-size: 14px; color: var(--text3);
+    cursor: pointer; margin-bottom: 24px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .reset-btn:active { color: var(--text); border-color: var(--border2); }
+
+  /* STATUS DOTS */
+  .status-steps {
+    display: flex; gap: 6px; align-items: center; justify-content: center;
+    padding: 10px 0 2px;
+  }
+  .step-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border2); transition: background 0.3s;
+  }
+  .step-dot.done { background: var(--accent); }
+  .step-dot.active { background: var(--amber); width: 18px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-badge">IN</div>
+  <h1>Stock IN</h1>
+  <div class="header-time" id="clock">--:--</div>
+</div>
+
+<div class="main">
+
+  <!-- STEP DOTS -->
+  <div class="status-steps">
+    <div class="step-dot active" id="dot-1"></div>
+    <div class="step-dot" id="dot-2"></div>
+    <div class="step-dot" id="dot-3"></div>
+  </div>
+
+  <!-- SCAN -->
+  <div style="height:12px"></div>
+  <div class="scan-section">
+    <div class="scan-label">Scan Barcode</div>
+    <div class="scan-input-row">
+      <input class="scan-input" id="barcode-input" type="text"
+        placeholder="Barcode hoặc Stock Code..."
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        inputmode="text">
+      <button class="scan-btn" id="cam-btn" title="Mở camera">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- NOT FOUND -->
+  <div class="not-found-card" id="not-found-card">
+    <div class="not-found-icon">⊘</div>
+    <div class="not-found-text">Không tìm thấy sản phẩm. Kiểm tra lại barcode.</div>
+  </div>
+
+  <!-- PRODUCT CARD -->
+  <div class="product-card" id="product-card">
+    <div class="product-found">
+      <div class="dot"></div>
+      <div class="product-found-text">Sản phẩm đã xác nhận</div>
+    </div>
+    <div class="product-info">
+      <div class="product-code" id="p-code">—</div>
+      <div class="product-name" id="p-name">—</div>
+      <div class="product-meta">
+        <div class="meta-pill">UPC/CTN: <span id="p-upc">—</span></div>
+        <div class="meta-pill" id="p-scan-type-pill">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-card" id="form-card">
+    <div class="form-section-label">Chi tiết nhập kho</div>
+
+    <!-- Qty row -->
+    <div class="qty-row-wrap">
+      <div class="qty-row-label">Số lượng</div>
+      <div class="qty-row">
+        <div class="form-group">
+          <label>Thùng (Carton)</label>
+          <input type="number" id="qty-carton" min="0" value="0" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>Lẻ (Loose)</label>
+          <input type="number" id="qty-loose" min="0" value="0" inputmode="numeric">
+        </div>
+      </div>
+    </div>
+
+    <!-- Computed -->
+    <div class="computed-banner" id="computed-banner">
+      <div class="computed-label">Tổng Real Unit Qty</div>
+      <div class="computed-value" id="computed-qty">0</div>
+    </div>
+
+    <!-- Expired Date -->
+    <div class="form-group">
+      <label>Expired Date</label>
+      <input type="date" id="expired-date">
+    </div>
+
+    <!-- BatchKey -->
+    <div class="batchkey-row" id="batchkey-row">
+      <div class="batchkey-label">BatchKey</div>
+      <div class="batchkey-value" id="batchkey-val">—</div>
+    </div>
+
+    <!-- Location -->
+    <div class="form-group">
+      <label>Location Code (tuỳ chọn)</label>
+      <input type="text" id="location-code" placeholder="A1, B2, ..." autocomplete="off" autocorrect="off">
+    </div>
+
+    <!-- Note -->
+    <div class="form-group">
+      <label>Ghi chú</label>
+      <input type="text" id="note" placeholder="Tuỳ chọn..." autocomplete="off">
+    </div>
+  </div>
+
+  <!-- SAVE -->
+  <button class="save-btn" id="save-btn" onclick="saveStockIn()">
+    <div class="spinner" id="save-spinner"></div>
+    <span id="save-label">Lưu Stock IN</span>
+  </button>
+
+  <!-- RESET -->
+  <button class="reset-btn" id="reset-btn" onclick="resetForm()">↺ Nhập mới</button>
+
+</div>
+
+<!-- CAMERA OVERLAY -->
+<div class="camera-overlay" id="camera-overlay">
+  <div class="camera-box">
+    <div class="camera-header">
+      <div class="camera-title">Quét mã vạch</div>
+      <button class="camera-close" onclick="closeCamera()">✕</button>
+    </div>
+    <div id="video-container">
+      <video id="qr-video" playsinline muted autoplay></video>
+      <div class="scan-frame">
+        <div class="scan-frame-box">
+          <div class="scan-line"></div>
+        </div>
+      </div>
+    </div>
+    <div class="camera-hint">Đưa mã vạch vào khung • Tự động nhận diện</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script>
+const WEBHOOK = 'https://script.google.com/macros/s/AKfycbykPavi7DGlIRi4IM4eZjKjIIjp2fRBumZNadlv0O4-gjxiI62xNYXZC-BId8bBNs0h5w/exec';
+const SHEET_ID = '1ixX7Za_CEgB89HiNJWYIYdtVFIPbYUluJ0JRNSeEFbs';
+
+let currentProduct = null;
+let masterData = [];
+let cameraStream = null;
+let lookupMap = {};
+
+// ─── CLOCK ───────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── LOAD MASTER ─────────────────────────────────────────────
+async function loadMaster() {
+  try {
+    const gid = '601101114';
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+    const res = await fetch(url);
+    const csv = await res.text();
+    const rows = parseCSV(csv);
+    if (rows.length < 2) return;
+    const header = rows[0].map(h => h.trim().toLowerCase().replace(/\s+/g,''));
+    const idx = (name) => header.findIndex(h => h.includes(name));
+    const iCode = idx('stockcode');
+    const iDesc = idx('description');
+    const iUnit = idx('barcodeunit');
+    const iCarton = idx('barcodecarton');
+    const iUpc = idx('unitpercarton');
+
+    masterData = rows.slice(1).map(r => ({
+      stockCode: (r[iCode]||'').trim(),
+      description: (r[iDesc]||'').trim(),
+      barcodeUnit: (r[iUnit]||'').trim(),
+      barcodeCarton: (r[iCarton]||'').trim(),
+      unitPerCarton: parseInt(r[iUpc])||1
+    })).filter(r => r.stockCode);
+
+    lookupMap = {};
+    masterData.forEach(p => {
+      if (p.barcodeUnit) lookupMap[p.barcodeUnit] = {product: p, scanType: 'Unit'};
+      if (p.barcodeCarton) lookupMap[p.barcodeCarton] = {product: p, scanType: 'Carton'};
+      lookupMap[p.stockCode] = {product: p, scanType: 'StockCode'};
+    });
+    console.log(`Master loaded: ${masterData.length} products`);
+  } catch(e) {
+    console.warn('Master load failed:', e);
+    showToast('Không tải được Master — kiểm tra kết nối', 'error');
+  }
+}
+
+function parseCSV(text) {
+  const rows = []; let row = []; let cell = ''; let inQ = false;
+  for (let i=0; i<text.length; i++) {
+    const c = text[i];
+    if (c==='"') { if (inQ && text[i+1]==='"') { cell+='"'; i++; } else inQ=!inQ; }
+    else if (c===',' && !inQ) { row.push(cell); cell=''; }
+    else if ((c==='\n'||c==='\r') && !inQ) {
+      if (c==='\r'&&text[i+1]==='\n') i++;
+      row.push(cell); rows.push(row); row=[]; cell='';
+    } else cell+=c;
+  }
+  if (cell||row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+// ─── LOOKUP ──────────────────────────────────────────────────
+function lookupBarcode(code) {
+  code = code.trim();
+  return lookupMap[code] || null;
+}
+
+// ─── BARCODE INPUT ───────────────────────────────────────────
+const barcodeInput = document.getElementById('barcode-input');
+barcodeInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') processBarcode(barcodeInput.value);
+});
+barcodeInput.addEventListener('input', () => {
+  const v = barcodeInput.value.trim();
+  if (v.length >= 4) {
+    const found = lookupBarcode(v);
+    if (found) { setTimeout(() => processBarcode(v), 80); }
+  }
+});
+
+function processBarcode(code) {
+  code = code.trim();
+  if (!code) return;
+  const found = lookupBarcode(code);
+  if (!found) {
+    showNotFound();
+  } else {
+    showProduct(found.product, found.scanType, code);
+  }
+}
+
+function showNotFound() {
+  hide('product-card'); hide('form-card'); hide('save-btn'); hide('computed-banner'); hide('batchkey-row');
+  show('not-found-card');
+  currentProduct = null;
+  setDot(1);
+}
+
+function showProduct(product, scanType, rawCode) {
+  currentProduct = { product, scanType, rawCode };
+  document.getElementById('p-code').textContent = product.stockCode;
+  document.getElementById('p-name').textContent = product.description || '—';
+  document.getElementById('p-upc').textContent = product.unitPerCarton;
+  document.getElementById('p-scan-type-pill').textContent = 'Scan: ' + scanType;
+
+  hide('not-found-card');
+  show('product-card');
+  show('form-card');
+  show('save-btn');
+
+  document.getElementById('qty-carton').value = '0';
+  document.getElementById('qty-loose').value = '0';
+  document.getElementById('expired-date').value = '';
+  document.getElementById('location-code').value = '';
+  document.getElementById('note').value = '';
+  hide('computed-banner');
+  hide('batchkey-row');
+  updateComputed();
+  setDot(2);
+}
+
+// ─── QTY COMPUTE ─────────────────────────────────────────────
+document.getElementById('qty-carton').addEventListener('input', updateComputed);
+document.getElementById('qty-loose').addEventListener('input', updateComputed);
+document.getElementById('expired-date').addEventListener('input', updateBatchKey);
+
+function updateComputed() {
+  if (!currentProduct) return;
+  const carton = parseInt(document.getElementById('qty-carton').value)||0;
+  const loose = parseInt(document.getElementById('qty-loose').value)||0;
+  const upc = currentProduct.product.unitPerCarton||1;
+  const total = (carton * upc) + loose;
+  document.getElementById('computed-qty').textContent = total;
+  if (carton > 0 || loose > 0) { show('computed-banner'); } else { hide('computed-banner'); }
+  updateBatchKey();
+}
+
+function updateBatchKey() {
+  if (!currentProduct) return;
+  const expDate = document.getElementById('expired-date').value;
+  if (!expDate) { hide('batchkey-row'); return; }
+  const ymd = expDate.replace(/-/g,'');
+  const bk = `${currentProduct.product.stockCode}-${ymd}`;
+  document.getElementById('batchkey-val').textContent = bk;
+  show('batchkey-row');
+  setDot(3);
+}
+
+// ─── SAVE ─────────────────────────────────────────────────────
+async function saveStockIn() {
+  if (!currentProduct) return;
+  const carton = parseInt(document.getElementById('qty-carton').value)||0;
+  const loose = parseInt(document.getElementById('qty-loose').value)||0;
+  const expDate = document.getElementById('expired-date').value;
+  const location = document.getElementById('location-code').value.trim();
+  const note = document.getElementById('note').value.trim();
+
+  if (!expDate) { showToast('Nhập Expired Date trước', 'error'); return; }
+  const total = (carton * currentProduct.product.unitPerCarton) + loose;
+  if (total <= 0) { showToast('Số lượng phải lớn hơn 0', 'error'); return; }
+
+  const batchKey = `${currentProduct.product.stockCode}-${expDate.replace(/-/g,'')}`;
+  const payload = {
+    action: 'stockIn',
+    stockCode: currentProduct.product.stockCode,
+    description: currentProduct.product.description,
+    scanCode: currentProduct.rawCode,
+    scanType: currentProduct.scanType,
+    qtyCarton: carton,
+    qtyLoose: loose,
+    unitPerCarton: currentProduct.product.unitPerCarton,
+    realUnitQty: total,
+    expiredDate: expDate,
+    batchKey: batchKey,
+    locationCode: location,
+    note: note,
+    timestamp: new Date().toISOString()
+  };
+
+  setSaving(true);
+  try {
+    const res = await fetch(WEBHOOK, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    showToast(`✓ Đã lưu — ${total} units (${batchKey})`, 'success');
+    setTimeout(resetForm, 1800);
+  } catch(e) {
+    showToast('Lỗi kết nối. Thử lại.', 'error');
+  } finally {
+    setSaving(false);
+  }
+}
+
+function setSaving(saving) {
+  const btn = document.getElementById('save-btn');
+  const spinner = document.getElementById('save-spinner');
+  const label = document.getElementById('save-label');
+  btn.disabled = saving;
+  spinner.style.display = saving ? 'block' : 'none';
+  label.textContent = saving ? 'Đang lưu...' : 'Lưu Stock IN';
+}
+
+// ─── RESET ────────────────────────────────────────────────────
+function resetForm() {
+  barcodeInput.value = '';
+  currentProduct = null;
+  hide('product-card'); hide('form-card'); hide('save-btn');
+  hide('not-found-card'); hide('computed-banner'); hide('batchkey-row');
+  setDot(1);
+  barcodeInput.focus();
+}
+
+// ─── CAMERA ───────────────────────────────────────────────────
+document.getElementById('cam-btn').addEventListener('click', openCamera);
+
+async function openCamera() {
+  document.getElementById('camera-overlay').classList.add('open');
+  try {
+    if (typeof Quagga === 'undefined') {
+      showToast('Thư viện quét chưa sẵn sàng', 'error');
+      closeCamera(); return;
+    }
+    Quagga.init({
+      inputStream: {
+        type: 'LiveStream',
+        target: document.getElementById('qr-video').parentElement,
+        constraints: { facingMode: 'environment', width: 640, height: 480 }
+      },
+      decoder: {
+        readers: ['ean_reader','ean_8_reader','code_128_reader','code_39_reader','upc_reader']
+      },
+      locate: true,
+      numOfWorkers: 2,
+      frequency: 10
+    }, (err) => {
+      if (err) { console.error(err); showToast('Không mở được camera', 'error'); closeCamera(); return; }
+      Quagga.start();
+    });
+    Quagga.onDetected((result) => {
+      const code = result.codeResult.code;
+      if (code) {
+        closeCamera();
+        barcodeInput.value = code;
+        processBarcode(code);
+        if (navigator.vibrate) navigator.vibrate(80);
+      }
+    });
+  } catch(e) {
+    showToast('Camera không khả dụng', 'error');
+    closeCamera();
+  }
+}
+
+function closeCamera() {
+  document.getElementById('camera-overlay').classList.remove('open');
+  try { Quagga.stop(); } catch(e) {}
+  if (cameraStream) { cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; }
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────
+function show(id) { document.getElementById(id).classList.add('visible'); }
+function hide(id) { document.getElementById(id).classList.remove('visible'); }
+
+function setDot(active) {
+  [1,2,3].forEach(i => {
+    const d = document.getElementById(`dot-${i}`);
+    d.classList.remove('active','done');
+    if (i < active) d.classList.add('done');
+    if (i === active) d.classList.add('active');
+  });
+}
+
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+loadMaster();
+barcodeInput.focus();
+</script>
+</body>
+</html>
