@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>Inventory Master</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#f5f5f5;color:#212121;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;min-height:100dvh;padding-bottom:calc(env(safe-area-inset-bottom,0px)+60px)}
+
+/* TOP BAR */
+.topbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:10px 16px 8px;position:sticky;top:0;z-index:100}
+.topbar-row1{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.back-btn{font-size:24px;color:#212121;background:none;border:none;cursor:pointer;padding:0 4px;display:none;line-height:1}
+.topbar-title{font-size:17px;font-weight:600;flex:1}
+.topbar-actions{display:flex;gap:4px}
+.icon-btn{background:none;border:none;font-size:20px;color:#616161;cursor:pointer;padding:6px;border-radius:50%}
+.icon-btn:active{background:#f5f5f5}
+
+/* SYNC STATUS BAR */
+.sync-bar{display:flex;align-items:center;gap:8px;font-size:12px;padding:2px 0}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.sync-dot.green{background:#4caf50}
+.sync-dot.yellow{background:#ff9800}
+.sync-dot.red{background:#f44336}
+.sync-dot.grey{background:#9e9e9e}
+.sync-dot.pulse{animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sync-text{color:#616161;flex:1}
+.pending-badge{background:#ff5722;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600}
+.offline-banner{background:#fff3e0;border-bottom:1px solid #ffe0b2;padding:6px 16px;font-size:13px;color:#e65100;display:none;align-items:center;gap:6px}
+.offline-banner.show{display:flex}
+
+/* BOTTOM TAB */
+.tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;display:flex;padding-bottom:env(safe-area-inset-bottom,0px);z-index:100}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 0 6px;cursor:pointer;gap:3px}
+.tab-icon{font-size:22px;color:#9e9e9e}
+.tab-label{font-size:10px;color:#9e9e9e;font-weight:500}
+.tab.active .tab-icon,.tab.active .tab-label{color:#1a73e8}
+
+/* PAGES */
+.page{display:none}.page.active{display:block}
+
+/* MASTER LIST */
+.search-bar{background:#fff;padding:8px 16px;border-bottom:1px solid #e0e0e0;display:none}
+.search-input{width:100%;background:#f1f3f4;border:none;border-radius:24px;padding:8px 14px;font-size:14px;color:#212121;outline:none}
+.search-input::placeholder{color:#9e9e9e}
+.list{background:#fff}
+.list-item{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #f0f0f0;gap:12px;cursor:pointer}
+.list-item:active{background:#f5f5f5}
+.item-img{width:56px;height:56px;border-radius:4px;background:#f5f5f5;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;color:#bdbdbd;border:1px solid #e0e0e0;overflow:hidden}
+.item-img img{width:100%;height:100%;object-fit:cover}
+.item-body{flex:1;min-width:0}
+.item-code{font-size:14px;font-weight:600;color:#212121;margin-bottom:2px}
+.item-desc{font-size:13px;color:#757575;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-arrow{color:#bdbdbd;font-size:20px}
+.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+68px);right:20px;width:56px;height:56px;background:#1a73e8;border-radius:50%;border:none;color:#fff;font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(26,115,232,.4);z-index:90}
+.fab:active{transform:scale(.95)}
+.empty{text-align:center;padding:48px 24px;color:#9e9e9e;font-size:14px}
+
+/* FORM */
+.form-body{padding:0 0 88px}
+.field{padding:14px 16px 0}
+.field-label{font-size:14px;color:#212121;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.req{color:#1a73e8;font-size:12px}
+.field-input{width:100%;border:1px solid #e0e0e0;border-radius:4px;padding:12px 14px;font-size:15px;color:#212121;outline:none;background:#fff;-webkit-appearance:none}
+.field-input:focus{border-color:#1a73e8;border-width:2px}
+.field-input.ro{background:#fafafa;color:#757575}
+.field-input::placeholder{color:#bdbdbd}
+.field-wrap{position:relative}
+.field-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#9e9e9e;font-size:18px;pointer-events:none}
+.field-icon.clickable{pointer-events:all;cursor:pointer}
+
+.type-toggle{display:flex;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden}
+.type-btn{flex:1;padding:12px;background:#fff;border:none;font-size:14px;font-weight:500;color:#757575;cursor:pointer}
+.type-btn.active{background:#e8f0fe;color:#1a73e8;font-weight:600}
+.type-btn:first-child{border-right:1px solid #e0e0e0}
+
+.stepper{display:flex;align-items:center;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden}
+.stepper input{flex:1;border:none;padding:12px 14px;font-size:15px;color:#212121;outline:none;background:#fff;width:0;-webkit-appearance:none}
+.step-btn{width:48px;height:48px;background:#fff;border:none;font-size:22px;color:#616161;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-btn:first-child{border-right:1px solid #e0e0e0}
+.step-btn:last-child{border-left:1px solid #e0e0e0}
+.step-btn:active{background:#f5f5f5}
+
+.prod-confirm{margin:8px 16px 0;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:10px 12px;display:none}
+.prod-confirm.show{display:block}
+.prod-confirm-code{font-size:13px;font-weight:600;color:#2e7d32}
+.prod-confirm-name{font-size:12px;color:#388e3c;margin-top:2px}
+
+.info-row{margin:6px 16px 0;border-radius:6px;padding:8px 12px;display:none}
+.info-row.show{display:block}
+.info-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.info-val{font-size:15px;font-weight:700}
+.info-row.bk{background:#fff8e1}.info-row.bk .info-label{color:#f57f17}.info-row.bk .info-val{color:#e65100;font-family:monospace;font-size:13px}
+.info-row.rq{background:#e3f2fd}.info-row.rq .info-label{color:#1565c0}.info-row.rq .info-val{color:#0d47a1;font-size:20px}
+
+.form-actions{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;display:flex;padding:10px 16px;padding-bottom:calc(env(safe-area-inset-bottom,0px)+10px);gap:12px;z-index:100}
+.btn-cancel{flex:1;padding:13px;background:#fff;border:1px solid #e0e0e0;border-radius:4px;font-size:15px;font-weight:500;color:#212121;cursor:pointer}
+.btn-save{flex:1;padding:13px;background:#fff;border:none;border-radius:4px;font-size:15px;font-weight:600;color:#1a73e8;cursor:pointer}
+.btn-save:disabled{color:#9e9e9e}
+
+/* PENDING QUEUE PAGE */
+.queue-item{background:#fff;margin:8px 16px;border-radius:8px;padding:14px;border:1px solid #e0e0e0}
+.queue-item.pending{border-left:4px solid #ff9800}
+.queue-item.synced{border-left:4px solid #4caf50;opacity:.6}
+.queue-item.error{border-left:4px solid #f44336}
+.qi-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.qi-code{font-size:14px;font-weight:600}
+.qi-status{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+.qi-status.pending{background:#fff3e0;color:#e65100}
+.qi-status.synced{background:#e8f5e9;color:#2e7d32}
+.qi-status.error{background:#ffebee;color:#c62828}
+.qi-detail{font-size:12px;color:#757575}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+72px);left:16px;right:16px;background:#323232;color:#fff;border-radius:6px;padding:12px 16px;font-size:14px;text-align:center;z-index:999;transform:translateY(20px);opacity:0;transition:all .25s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:#2e7d32}
+.toast.error{background:#c62828}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar" id="topbar">
+  <div class="topbar-row1">
+    <button class="back-btn" id="back-btn" onclick="goBack()">‹</button>
+    <div class="topbar-title" id="topbar-title">Master</div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="icon-btn" onclick="toggleSearch()" title="Search">🔍</button>
+      <button class="icon-btn" onclick="manualRefresh()" title="Refresh">↻</button>
+    </div>
+  </div>
+  <div class="sync-bar">
+    <div class="sync-dot grey" id="sync-dot"></div>
+    <div class="sync-text" id="sync-text">Đang khởi động...</div>
+    <div class="pending-badge" id="pending-badge" style="display:none">0</div>
+  </div>
+</div>
+
+<div class="offline-banner" id="offline-banner">
+  ⚠ Offline — dữ liệu có thể chưa cập nhật. Giao dịch sẽ được sync khi có mạng.
+</div>
+
+<!-- PAGE: MASTER -->
+<div class="page active" id="page-master">
+  <div class="search-bar" id="search-bar">
+    <input class="search-input" id="search-input" placeholder="Tìm Stock Code hoặc tên sản phẩm..." oninput="filterList()">
+  </div>
+  <div class="list" id="master-list"><div class="empty">⏳ Đang tải...</div></div>
+  <button class="fab" onclick="openForm()">＋</button>
+</div>
+
+<!-- PAGE: MOVEMENT (Queue) -->
+<div class="page" id="page-movement">
+  <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:14px;color:#616161">Giao dịch chờ sync</div>
+    <button onclick="syncNow()" style="background:#1a73e8;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer">Sync ngay</button>
+  </div>
+  <div id="queue-list"><div class="empty">Không có giao dịch chờ</div></div>
+  <button class="fab" onclick="openForm()">＋</button>
+</div>
+
+<!-- PAGE: FORM -->
+<div class="page" id="page-form">
+  <div class="form-body">
+
+    <div class="field" style="padding-top:18px">
+      <div class="field-label">Scan Code</div>
+      <div class="field-wrap">
+        <input class="field-input" id="f-scan" type="text" placeholder="Scan hoặc gõ barcode..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onScanInput()" onkeydown="onScanKey(event)" style="padding-right:52px">
+        <span class="field-icon" onclick="openScanner()" style="font-size:22px;cursor:pointer;pointer-events:all">📷</span>
+      </div>
+      <div style="margin-top:5px;font-size:12px;color:#9e9e9e">💡 Bluetooth scanner: quét thẳng vào ô trên</div>
+    </div>
+
+    <!-- LIVE SCANNER MODAL -->
+    <div id="scanner-modal" style="display:none;position:fixed;inset:0;background:#000;z-index:500;flex-direction:column">
+      <div style="background:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0">
+        <button onclick="closeScanner()" style="background:none;border:none;font-size:26px;color:#212121;cursor:pointer;line-height:1">&#8249;</button>
+        <div style="font-size:16px;font-weight:600;flex:1">Quét mã vạch</div>
+        <div id="scan-engine-badge" style="font-size:11px;background:#e8f0fe;color:#1a73e8;padding:3px 8px;border-radius:10px;font-weight:600">...</div>
+      </div>
+      <div style="position:relative;flex:1;overflow:hidden;background:#000">
+        <video id="scan-video" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover"></video>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <div style="width:270px;height:160px;position:relative">
+            <div style="position:absolute;top:0;left:0;width:28px;height:28px;border-top:3px solid #fff;border-left:3px solid #fff"></div>
+            <div style="position:absolute;top:0;right:0;width:28px;height:28px;border-top:3px solid #fff;border-right:3px solid #fff"></div>
+            <div style="position:absolute;bottom:0;left:0;width:28px;height:28px;border-bottom:3px solid #fff;border-left:3px solid #fff"></div>
+            <div style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-bottom:3px solid #fff;border-right:3px solid #fff"></div>
+            <div id="scan-line" style="position:absolute;left:4px;right:4px;height:2px;background:#1a73e8;animation:scanline 1.8s ease-in-out infinite"></div>
+          </div>
+        </div>
+        <div id="scan-flash" style="position:absolute;inset:0;background:transparent;pointer-events:none;transition:background .1s"></div>
+      </div>
+      <div style="background:#212121;padding:14px 16px;text-align:center;flex-shrink:0">
+        <div id="scan-status" style="color:#9e9e9e;font-size:13px;margin-bottom:12px">Dua ma vach vao khung</div>
+        <button onclick="closeScanner()" style="background:#fff;border:none;border-radius:4px;padding:10px 40px;font-size:15px;font-weight:500;cursor:pointer">Huy</button>
+      </div>
+    </div>
+    <style>@keyframes scanline{0%,100%{top:4px}50%{top:calc(100% - 6px)}}</style>
+
+    <div class="field">
+      <div class="field-label">Stock Code</div>
+      <input class="field-input ro" id="f-code" type="text" readonly placeholder="Tự động điền">
+    </div>
+
+    <div class="prod-confirm" id="prod-confirm">
+      <div class="prod-confirm-code" id="conf-code"></div>
+      <div class="prod-confirm-name" id="conf-name"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Type <span class="req">*</span></div>
+      <div class="type-toggle">
+        <button class="type-btn active" id="type-in" onclick="setType('IN')">IN</button>
+        <button class="type-btn" id="type-out" onclick="setType('OUT')">OUT</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Qty Carton <span class="req">*</span></div>
+      <div class="stepper">
+        <button class="step-btn" onclick="step('qc',-1)">−</button>
+        <input type="number" id="qc" value="0" min="0" inputmode="numeric" oninput="calcQty()">
+        <button class="step-btn" onclick="step('qc',1)">+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Qty Loose</div>
+      <div class="stepper">
+        <button class="step-btn" onclick="step('ql',-1)">−</button>
+        <input type="number" id="ql" value="0" min="0" inputmode="numeric" oninput="calcQty()">
+        <button class="step-btn" onclick="step('ql',1)">+</button>
+      </div>
+    </div>
+
+    <div class="info-row rq" id="rq-row">
+      <div class="info-label">Real Unit Qty</div>
+      <div class="info-val" id="rq-val">0</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Location Code</div>
+      <div class="field-wrap">
+        <input class="field-input" id="f-loc" type="text" placeholder="" autocomplete="off">
+        <span class="field-icon">⊞</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Expired Date</div>
+      <div class="field-wrap">
+        <input class="field-input" id="f-exp" type="date" oninput="updateBK()">
+        <span class="field-icon">📅</span>
+      </div>
+    </div>
+
+    <div class="info-row bk" id="bk-row">
+      <div class="info-label">BatchKey</div>
+      <div class="info-val" id="bk-val"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Real Unit Qty (computed)</div>
+      <input class="field-input ro" id="f-rq" readonly value="0">
+    </div>
+
+    <div class="field">
+      <div class="field-label">By</div>
+      <input class="field-input" id="f-by" type="text" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <div class="field-label">Time Stamp <span class="req">*</span></div>
+      <div class="field-wrap">
+        <input class="field-input ro" id="f-ts" readonly>
+        <span class="field-icon">📅</span>
+      </div>
+    </div>
+
+    <div class="field" style="padding-bottom:8px">
+      <div class="field-label">From Location</div>
+      <input class="field-input" id="f-fromloc" type="text" autocomplete="off">
+    </div>
+
+  </div>
+  <div class="form-actions">
+    <button class="btn-cancel" onclick="goBack()">Cancel</button>
+    <button class="btn-save" id="btn-save" onclick="doSave()">Save</button>
+  </div>
+</div>
+
+<!-- BOTTOM TAB -->
+<div class="tabbar">
+  <div class="tab active" id="tab-master" onclick="switchTab('master')">
+    <span class="tab-icon">☰</span>
+    <span class="tab-label">Master</span>
+  </div>
+  <div class="tab" id="tab-movement" onclick="switchTab('movement')">
+    <span class="tab-icon">🔄</span>
+    <span class="tab-label">Pending Sync</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const WEBHOOK = 'https://script.google.com/macros/s/AKfycbykPavi7DGlIRi4IM4eZjKjIIjp2fRBumZNadlv0O4-gjxiI62xNYXZC-BId8bBNs0h5w/exec';
+const DB_NAME = 'InventoryMaster';
+const DB_VER  = 1;
+const STORE   = 'pending_queue';
+
+let masterData = [], lookupMap = {}, curProduct = null, curType = 'IN';
+let prevTab = 'master';
+let isOnline = navigator.onLine;
+let lastSyncTime = null;
+let db = null;
+let syncTimer = null;
+let isSyncing = false;
+
+// ══════════════════════════════════════════════════
+// INDEXEDDB
+// ══════════════════════════════════════════════════
+async function initDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        const s = d.createObjectStore(STORE, {keyPath:'localId', autoIncrement:true});
+        s.createIndex('status', 'status');
+        s.createIndex('timestamp', 'timestamp');
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror   = e => rej(e);
+  });
+}
+
+async function dbAdd(record) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const req = tx.objectStore(STORE).add(record);
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+async function dbGetPending() {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const idx = tx.objectStore(STORE).index('status');
+    const req = idx.getAll('pending_sync');
+    req.onsuccess = () => res(req.result.sort((a,b) => new Date(a.timestamp)-new Date(b.timestamp)));
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+async function dbGetAll() {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => res(req.result.sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp)));
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+async function dbUpdate(localId, changes) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const req = store.get(localId);
+    req.onsuccess = () => {
+      const rec = req.result;
+      Object.assign(rec, changes);
+      store.put(rec).onsuccess = () => res();
+    };
+    req.onerror = () => rej(req.error);
+  });
+}
+
+// ══════════════════════════════════════════════════
+// ONLINE / OFFLINE
+// ══════════════════════════════════════════════════
+window.addEventListener('online',  () => { isOnline = true;  onNetworkChange(); });
+window.addEventListener('offline', () => { isOnline = false; onNetworkChange(); });
+
+function onNetworkChange() {
+  document.getElementById('offline-banner').classList.toggle('show', !isOnline);
+  updateSyncBar();
+  if (isOnline) syncNow();
+}
+
+// ══════════════════════════════════════════════════
+// SYNC BAR — LAST UPDATED INDICATOR
+// ══════════════════════════════════════════════════
+function updateSyncBar() {
+  const dot  = document.getElementById('sync-dot');
+  const text = document.getElementById('sync-text');
+
+  if (!isOnline) {
+    dot.className = 'sync-dot red';
+    const ago = lastSyncTime ? timeAgo(lastSyncTime) : 'belum pernah';
+    text.textContent = `Offline — terakhir sync ${ago}`;
+    return;
+  }
+
+  if (!lastSyncTime) {
+    dot.className = 'sync-dot grey pulse';
+    text.textContent = 'Đang tải dữ liệu...';
+    return;
+  }
+
+  const mins = (Date.now() - lastSyncTime) / 60000;
+  if (mins < 2) {
+    dot.className = 'sync-dot green';
+    text.textContent = 'Cập nhật vừa xong';
+  } else if (mins < 10) {
+    dot.className = 'sync-dot green';
+    text.textContent = `Cập nhật ${Math.floor(mins)} phút trước`;
+  } else if (mins < 30) {
+    dot.className = 'sync-dot yellow';
+    text.textContent = `Cập nhật ${Math.floor(mins)} phút trước`;
+  } else {
+    dot.className = 'sync-dot red';
+    text.textContent = `Cập nhật ${timeAgo(lastSyncTime)} — nên refresh`;
+  }
+}
+
+function timeAgo(ts) {
+  const secs = Math.floor((Date.now() - ts) / 1000);
+  if (secs < 60)  return 'vừa xong';
+  if (secs < 3600) return Math.floor(secs/60) + ' phút trước';
+  if (secs < 86400) return Math.floor(secs/3600) + ' giờ trước';
+  return Math.floor(secs/86400) + ' ngày trước';
+}
+
+// Update sync bar every 30s
+setInterval(updateSyncBar, 30000);
+
+// ══════════════════════════════════════════════════
+// PENDING BADGE
+// ══════════════════════════════════════════════════
+async function updatePendingBadge() {
+  const pending = await dbGetPending();
+  const badge = document.getElementById('pending-badge');
+  const tabLabel = document.querySelector('#tab-movement .tab-label');
+  if (pending.length > 0) {
+    badge.style.display = 'block';
+    badge.textContent = pending.length;
+    tabLabel.textContent = `Sync (${pending.length})`;
+  } else {
+    badge.style.display = 'none';
+    tabLabel.textContent = 'Pending Sync';
+  }
+}
+
+// ══════════════════════════════════════════════════
+// LOAD MASTER
+// ══════════════════════════════════════════════════
+async function loadMaster() {
+  if (!isOnline) {
+    const cached = localStorage.getItem('master_cache');
+    if (cached) {
+      buildLookup(JSON.parse(cached));
+      renderList(masterData);
+      toast('Offline — dùng dữ liệu cache');
+    }
+    updateSyncBar();
+    return;
+  }
+
+  document.getElementById('sync-dot').className = 'sync-dot grey pulse';
+  document.getElementById('sync-text').textContent = 'Đang tải danh mục...';
+
+  try {
+    const res  = await fetch(WEBHOOK + '?action=getMaster&t=' + Date.now());
+    const json = await res.json();
+    if (!json.success || !json.data) throw new Error('no data');
+
+    buildLookup(json.data);
+    localStorage.setItem('master_cache', JSON.stringify(json.data));
+    lastSyncTime = Date.now();
+    localStorage.setItem('last_sync', lastSyncTime);
+    renderList(masterData);
+    updateSyncBar();
+  } catch(e) {
+    console.warn('loadMaster failed:', e);
+    const cached = localStorage.getItem('master_cache');
+    if (cached) { buildLookup(JSON.parse(cached)); renderList(masterData); }
+    document.getElementById('sync-dot').className = 'sync-dot red';
+    document.getElementById('sync-text').textContent = 'Tải thất bại — dùng cache';
+  }
+}
+
+function buildLookup(data) {
+  masterData = data.map(r => ({
+    stockCode:    String(r['Stock Code']    || r['StockCode']    || '').trim(),
+    description:  String(r['Description']   || r['description']  || '').trim(),
+    barcodeUnit:  String(r['Barcode Unit']   || r['BarcodeUnit']  || '').trim(),
+    barcodeCarton:String(r['Barcode Carton'] || r['BarcodeCarton']|| '').trim(),
+    unitPerCarton:parseInt(r['Unit Per Carton']||r['UnitPerCarton']||1)||1
+  })).filter(r => r.stockCode);
+
+  lookupMap = {};
+  masterData.forEach(p => {
+    if (p.barcodeUnit)   lookupMap[p.barcodeUnit]   = {product:p, scanType:'Unit'};
+    if (p.barcodeCarton) lookupMap[p.barcodeCarton] = {product:p, scanType:'Carton'};
+    lookupMap[p.stockCode] = {product:p, scanType:'StockCode'};
+  });
+}
+
+function manualRefresh() {
+  loadMaster();
+  syncNow();
+}
+
+// ══════════════════════════════════════════════════
+// SYNC — FIFO
+// ══════════════════════════════════════════════════
+async function syncNow() {
+  if (!isOnline || isSyncing) return;
+  const pending = await dbGetPending();
+  if (!pending.length) return;
+
+  isSyncing = true;
+  document.getElementById('sync-dot').className = 'sync-dot grey pulse';
+  document.getElementById('sync-text').textContent = `Đang sync ${pending.length} giao dịch...`;
+
+  let successCount = 0;
+  for (const rec of pending) {  // FIFO by timestamp
+    try {
+      await fetch(WEBHOOK, {
+        method: 'POST', mode: 'no-cors',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(rec.payload)
+      });
+      await dbUpdate(rec.localId, {status:'synced', syncedAt: new Date().toISOString()});
+      successCount++;
+    } catch(e) {
+      await dbUpdate(rec.localId, {status:'pending_sync', retries:(rec.retries||0)+1});
+    }
+  }
+
+  isSyncing = false;
+  lastSyncTime = Date.now();
+  localStorage.setItem('last_sync', lastSyncTime);
+  updateSyncBar();
+  updatePendingBadge();
+  renderQueueList();
+  if (successCount > 0) toast(`✓ Đã sync ${successCount} giao dịch`, 'success');
+}
+
+// ══════════════════════════════════════════════════
+// RENDER LIST
+// ══════════════════════════════════════════════════
+function renderList(data) {
+  const list = document.getElementById('master-list');
+  if (!data.length) { list.innerHTML = '<div class="empty">Không có sản phẩm</div>'; return; }
+  list.innerHTML = data.map(p => `
+    <div class="list-item" onclick="openFormWith('${p.stockCode.replace(/'/g,"\\'")}')">
+      <div class="item-img">📦</div>
+      <div class="item-body">
+        <div class="item-code">${p.stockCode}</div>
+        <div class="item-desc">${p.description || '—'}</div>
+      </div>
+      <div class="item-arrow">›</div>
+    </div>`).join('');
+}
+
+function filterList() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = q ? masterData.filter(p =>
+    p.stockCode.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+  ) : masterData;
+  renderList(filtered);
+}
+
+function toggleSearch() {
+  const bar = document.getElementById('search-bar');
+  const visible = bar.style.display !== 'none';
+  bar.style.display = visible ? 'none' : 'block';
+  if (!visible) document.getElementById('search-input').focus();
+}
+
+// ══════════════════════════════════════════════════
+// QUEUE LIST
+// ══════════════════════════════════════════════════
+async function renderQueueList() {
+  const all = await dbGetAll();
+  const el  = document.getElementById('queue-list');
+  if (!all.length) { el.innerHTML = '<div class="empty">Không có giao dịch</div>'; return; }
+  el.innerHTML = all.slice(0,50).map(r => `
+    <div class="queue-item ${r.status==='synced'?'synced':r.status==='error'?'error':'pending'}">
+      <div class="qi-header">
+        <div class="qi-code">${r.payload?.stockCode||'?'} — ${r.payload?.type||'IN'}</div>
+        <div class="qi-status ${r.status==='synced'?'synced':r.status==='error'?'error':'pending'}">
+          ${r.status==='synced'?'✓ Synced':r.status==='error'?'✗ Error':'⏳ Pending'}
+        </div>
+      </div>
+      <div class="qi-detail">
+        Qty: ${r.payload?.realUnitQty||0} | Batch: ${r.payload?.batchKey||'—'}<br>
+        ${new Date(r.timestamp).toLocaleString('vi-VN')}
+        ${r.syncedAt ? ' → Synced: '+new Date(r.syncedAt).toLocaleString('vi-VN') : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+// TABS & NAVIGATION
+// ══════════════════════════════════════════════════
+function switchTab(tab) {
+  ['master','movement'].forEach(t => {
+    document.getElementById('page-'+t).classList.toggle('active', t===tab);
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+  document.getElementById('page-form').classList.remove('active');
+  document.getElementById('topbar-title').textContent = tab==='master' ? 'Master' : 'Pending Sync';
+  document.getElementById('back-btn').style.display = 'none';
+  document.getElementById('topbar-actions').style.display = 'flex';
+  prevTab = tab;
+  if (tab === 'movement') { renderQueueList(); updatePendingBadge(); }
+}
+
+function goBack() { switchTab(prevTab); }
+
+// ══════════════════════════════════════════════════
+// FORM
+// ══════════════════════════════════════════════════
+function openForm() {
+  showFormPage('Nhập kho');
+  resetForm();
+}
+
+function openFormWith(stockCode) {
+  openForm();
+  const found = lookupMap[stockCode];
+  if (found) fillProduct(found.product, found.scanType, stockCode);
+}
+
+function showFormPage(title) {
+  ['master','movement'].forEach(t => document.getElementById('page-'+t).classList.remove('active'));
+  document.getElementById('page-form').classList.add('active');
+  document.getElementById('topbar-title').textContent = title || 'Nhập kho';
+  document.getElementById('back-btn').style.display = 'block';
+  document.getElementById('topbar-actions').style.display = 'none';
+}
+
+function resetForm() {
+  curProduct = null;
+  ['f-scan','f-code','f-loc','f-by','f-fromloc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('qc').value = '0';
+  document.getElementById('ql').value = '0';
+  document.getElementById('f-exp').value = '';
+  document.getElementById('f-rq').value = '0';
+  document.getElementById('prod-confirm').classList.remove('show');
+  document.getElementById('bk-row').classList.remove('show');
+  document.getElementById('rq-row').classList.remove('show');
+  setType('IN');
+  document.getElementById('f-ts').value = new Date().toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'long',year:'numeric'});
+}
+
+function setType(t) {
+  curType = t;
+  document.getElementById('type-in').classList.toggle('active',  t==='IN');
+  document.getElementById('type-out').classList.toggle('active', t==='OUT');
+}
+
+// ══════════════════════════════════════════════════
+// SCAN
+// ══════════════════════════════════════════════════
+function onScanInput() {
+  const v = document.getElementById('f-scan').value.trim();
+  if (v.length >= 4 && lookupMap[v]) fillProduct(lookupMap[v].product, lookupMap[v].scanType, v);
+}
+
+function onScanKey(e) {
+  if (e.key !== 'Enter') return;
+  const v = document.getElementById('f-scan').value.trim();
+  const found = lookupMap[v];
+  if (found) fillProduct(found.product, found.scanType, v);
+  else if (v) toast('Không tìm thấy: ' + v);
+}
+
+function fillProduct(p, scanType, raw) {
+  curProduct = {p, scanType, raw};
+  document.getElementById('f-code').value = p.stockCode;
+  document.getElementById('conf-code').textContent = p.stockCode + ' [' + scanType + ']';
+  document.getElementById('conf-name').textContent = p.description;
+  document.getElementById('prod-confirm').classList.add('show');
+  calcQty();
+}
+
+// ══════════════════════════════════════════════════
+// QTY
+// ══════════════════════════════════════════════════
+function step(id, d) {
+  const el = document.getElementById(id);
+  el.value = Math.max(0,(parseInt(el.value)||0)+d);
+  calcQty();
+}
+
+function calcQty() {
+  const c = parseInt(document.getElementById('qc').value)||0;
+  const l = parseInt(document.getElementById('ql').value)||0;
+  const upc = curProduct ? curProduct.p.unitPerCarton : 1;
+  const total = c * upc + l;
+  document.getElementById('f-rq').value = total;
+  document.getElementById('rq-val').textContent = total;
+  document.getElementById('rq-row').classList.toggle('show', c>0||l>0);
+  updateBK();
+}
+
+function updateBK() {
+  if (!curProduct) return;
+  const exp = document.getElementById('f-exp').value;
+  if (!exp) { document.getElementById('bk-row').classList.remove('show'); return; }
+  const bk = curProduct.p.stockCode + '-' + exp.replace(/-/g,'');
+  document.getElementById('bk-val').textContent = bk;
+  document.getElementById('bk-row').classList.add('show');
+}
+
+// ══════════════════════════════════════════════════
+// SCANNER ENGINE — html5-qrcode (iOS Safari optimized)
+// ══════════════════════════════════════════════════
+let html5Scanner = null;
+let scanActive = false;
+
+function hasNativeBarcodeDetector() {
+  return typeof BarcodeDetector !== 'undefined';
+}
+
+async function openScanner() {
+  const modal = document.getElementById('scanner-modal');
+  modal.style.display = 'flex';
+  document.getElementById('scan-status').textContent = 'Đang khởi động camera...';
+  document.getElementById('scan-engine-badge').textContent = 'html5-qrcode';
+  scanActive = true;
+
+  // Create scan target div inside video container
+  const vidWrap = document.getElementById('scan-video').parentElement;
+  document.getElementById('scan-video').style.display = 'none';
+
+  let scanDiv = document.getElementById('html5-scan-div');
+  if (!scanDiv) {
+    scanDiv = document.createElement('div');
+    scanDiv.id = 'html5-scan-div';
+    scanDiv.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;';
+    vidWrap.appendChild(scanDiv);
+  }
+  scanDiv.style.display = 'block';
+
+  try {
+    html5Scanner = new Html5Qrcode('html5-scan-div', {
+      verbose: false,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    });
+
+    const config = {
+      fps: 15,
+      qrbox: { width: 260, height: 140 },
+      aspectRatio: 1.7,
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.ITF,
+      ]
+    };
+
+    await html5Scanner.start(
+      { facingMode: 'environment' },
+      config,
+      (decodedText) => {
+        if (!scanActive) return;
+        onScanSuccess(decodedText);
+      },
+      (errorMsg) => { /* ignore per-frame errors */ }
+    );
+    document.getElementById('scan-status').textContent = 'Đưa mã vạch vào khung';
+  } catch(e) {
+    document.getElementById('scan-status').textContent = 'Lỗi camera: ' + e;
+    console.error('Scanner error:', e);
+  }
+}
+
+function onScanSuccess(code) {
+  if (!scanActive) return;
+  scanActive = false;
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+
+  // Flash
+  const flash = document.getElementById('scan-flash');
+  if (flash) { flash.style.background = 'rgba(255,255,255,0.6)'; setTimeout(() => flash.style.background = 'transparent', 150); }
+
+  closeScanner();
+  document.getElementById('f-scan').value = code;
+  const found = lookupMap[code];
+  if (found) {
+    fillProduct(found.product, found.scanType, code);
+    toast('✓ Scan: ' + code, 'success');
+  } else {
+    toast('Không tìm thấy: ' + code);
+  }
+}
+
+function closeScanner() {
+  scanActive = false;
+  if (html5Scanner) {
+    html5Scanner.stop().catch(() => {}).finally(() => {
+      try { html5Scanner.clear(); } catch(e) {}
+      html5Scanner = null;
+    });
+  }
+  const scanDiv = document.getElementById('html5-scan-div');
+  if (scanDiv) scanDiv.style.display = 'none';
+  document.getElementById('scan-video').style.display = 'block';
+  document.getElementById('scanner-modal').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════
+// SAVE — Online first, fallback to queue
+// ══════════════════════════════════════════════════
+async function doSave() {
+  const exp = document.getElementById('f-exp').value;
+  const c   = parseInt(document.getElementById('qc').value)||0;
+  const l   = parseInt(document.getElementById('ql').value)||0;
+  const scanCode = document.getElementById('f-scan').value.trim();
+
+  if (!curProduct && !scanCode) { toast('Nhập Scan Code trước'); return; }
+  if (!exp) { toast('Chọn Expired Date'); return; }
+  const upc   = curProduct ? curProduct.p.unitPerCarton : 1;
+  const total = c * upc + l;
+  if (total <= 0) { toast('Số lượng phải lớn hơn 0'); return; }
+
+  const stockCode = curProduct ? curProduct.p.stockCode : scanCode;
+  const bk = stockCode + '-' + exp.replace(/-/g,'');
+
+  const payload = {
+    action:'stockIn', type: curType, stockCode,
+    description: curProduct?.p.description || '',
+    scanCode: curProduct?.raw || scanCode,
+    scanType: curProduct?.scanType || 'Manual',
+    qtyCarton: c, qtyLoose: l, unitPerCarton: upc, realUnitQty: total,
+    expiredDate: exp, batchKey: bk,
+    locationCode: document.getElementById('f-loc').value.trim(),
+    by: document.getElementById('f-by').value.trim(),
+    fromLocation: document.getElementById('f-fromloc').value.trim(),
+    timestamp: new Date().toISOString()
+  };
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  if (isOnline) {
+    // ONLINE: send immediately
+    try {
+      await fetch(WEBHOOK, {
+        method:'POST', mode:'no-cors',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      // Also save to DB as synced for history
+      await dbAdd({payload, status:'synced', timestamp:payload.timestamp, syncedAt:new Date().toISOString()});
+      lastSyncTime = Date.now();
+      localStorage.setItem('last_sync', lastSyncTime);
+      updateSyncBar();
+      toast('✓ Đã lưu — ' + total + ' units', 'success');
+      setTimeout(goBack, 1500);
+    } catch(e) {
+      // Fallback to queue if fetch fails
+      await saveToQueue(payload);
+      toast('⚠ Lưu offline — sẽ sync sau');
+      setTimeout(goBack, 1800);
+    }
+  } else {
+    // OFFLINE: save to queue
+    await saveToQueue(payload);
+    toast('📥 Lưu offline — sẽ sync khi có mạng');
+    setTimeout(goBack, 1800);
+  }
+
+  btn.disabled = false; btn.textContent = 'Save';
+  updatePendingBadge();
+}
+
+async function saveToQueue(payload) {
+  await dbAdd({payload, status:'pending_sync', timestamp:payload.timestamp, retries:0});
+}
+
+// ══════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════
+let tTimer;
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'toast ' + type;
+  t.classList.add('show');
+  clearTimeout(tTimer);
+  tTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+async function init() {
+  await initDB();
+  // Restore last sync time
+  const ls = localStorage.getItem('last_sync');
+  if (ls) lastSyncTime = parseInt(ls);
+
+  // Load cached master immediately while fetching fresh
+  const cached = localStorage.getItem('master_cache');
+  if (cached) { buildLookup(JSON.parse(cached)); renderList(masterData); }
+
+  isOnline = navigator.onLine;
+  document.getElementById('offline-banner').classList.toggle('show', !isOnline);
+  updateSyncBar();
+  updatePendingBadge();
+  loadMaster();
+
+  // Auto sync every 2 min if online
+  setInterval(() => { if (isOnline) syncNow(); }, 120000);
+}
+
+init();
+</script>
+</body>
+</html>
